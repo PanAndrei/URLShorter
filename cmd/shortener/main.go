@@ -1,6 +1,15 @@
 package main
 
-import "net/http"
+import (
+	"io"
+	"net/http"
+
+	"github.com/PanAndrei/URLShorter/internal/app/Services"
+)
+
+const (
+	LocalHost = "http://localhost:8080/"
+)
 
 func mainHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
@@ -8,24 +17,31 @@ func mainHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := req.ParseForm(); err != nil {
+	body, err := io.ReadAll(req.Body)
+
+	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
 	}
 
-	// for _, v := range req.Form {
-	//     if v
-	// }
+	receivedURL := string(body)
 
-	// res.Write([]byte("Привет!"))
 	res.WriteHeader(http.StatusCreated)
 	res.Header().Set("Content-Type", "text/plain")
-	res.Write([]byte("http://localhost:8080/EwHXdJfB"))
+	res.Write([]byte(LocalHost + Services.SaveURL(receivedURL)))
+}
+
+func answerHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(res, "Only GET requests are allowed!", http.StatusBadRequest)
+		return
+	}
 }
 
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/`, mainHandler)
+	mux.HandleFunc(`/{id}`, answerHandler)
 
 	err := http.ListenAndServe(`:8080`, mux)
 	if err != nil {
