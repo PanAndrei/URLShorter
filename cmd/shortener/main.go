@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/PanAndrei/URLShorter/internal/app/Services"
 )
@@ -36,6 +37,20 @@ func answerHandler(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "Only GET requests are allowed!", http.StatusBadRequest)
 		return
 	}
+
+	path := req.URL.Path
+	shortURL := strings.TrimPrefix(path, "/")
+
+	url, ok := Services.LoadURL(shortURL)
+
+	if !ok {
+		http.Error(res, "URL not found", http.StatusBadRequest)
+		return
+	}
+
+	res.WriteHeader(http.StatusTemporaryRedirect)
+	res.Header().Set("Content-Type", "text/plain")
+	res.Write([]byte(url))
 }
 
 func main() {
