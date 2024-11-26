@@ -27,15 +27,13 @@ func mainHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	receivedURL := string(body)
-
 	receivedURL := strings.TrimSpace(string(body))
 
 	lines := strings.Split(receivedURL, "\n")
 	if len(lines) > 0 {
 		receivedURL = strings.TrimSpace(lines[0])
 	} else {
-		http.Error(res, "Invalid request body", http.StatusBadRequest)
+		http.Error(res, "Пустой боди", http.StatusBadRequest)
 		return
 	}
 
