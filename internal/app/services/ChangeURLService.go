@@ -1,32 +1,22 @@
 package services
 
 import (
-	"fmt"
 	"math/rand"
 )
 
 const (
-	AdressLenght = 8
+	adressLenght = 8
 	charset      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" // как бы тут через range и askii покрасивее
 )
 
 func SaveURL(url string, urls *map[string]string) (short string) {
 	v, ok := (*urls)[url]
 
-	fmt.Print("входящий урл" + url + "\n")
-
 	if !ok {
-		short = generateUniqAdress(AdressLenght, urls)
-		fmt.Print("шорт" + short + "\n")
+		short = generateUniqAdress(adressLenght, urls)
 		(*urls)[url] = short
-
 	} else {
-		fmt.Print("повтор\n")
 		short = v
-	}
-
-	for k, v := range *urls {
-		print(k, "-****-", v)
 	}
 
 	return
@@ -37,13 +27,12 @@ func LoadURL(short string, urls *map[string]string) (url string, ok bool) {
 		if short == v {
 			url = k
 			ok = true
+			break
 		}
 	}
 
 	return
 }
-
-// var urls = make(map[string]string)
 
 func generateUniqAdress(length int, urls *map[string]string) string {
 	b := make([]byte, length)

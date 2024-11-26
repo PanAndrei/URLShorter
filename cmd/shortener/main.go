@@ -14,7 +14,30 @@ const (
 
 var urls map[string]string
 
-func mainHandler(res http.ResponseWriter, req *http.Request) {
+func main() {
+	urls = make(map[string]string)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc(`/`, mainRouteHandler)
+
+	err := http.ListenAndServe(`:8080`, mux)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func mainRouteHandler(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPost:
+		saveHandler(res, req)
+	case http.MethodGet:
+		loadHandler(res, req)
+	default:
+		http.Error(res, "Method not allowed!", http.StatusBadRequest)
+	}
+}
+
+func saveHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Only POST requests are allowed!", http.StatusBadRequest)
 		return
@@ -31,7 +54,7 @@ func mainHandler(res http.ResponseWriter, req *http.Request) {
 
 	lines := strings.Split(receivedURL, "\n")
 	if len(lines) > 0 {
-		receivedURL = strings.TrimSpace(lines[0])
+		receivedURL = strings.TrimSpace(lines[len(lines)-1])
 	} else {
 		http.Error(res, "Пустой боди", http.StatusBadRequest)
 		return
@@ -42,7 +65,7 @@ func mainHandler(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte(LocalHost + services.SaveURL(receivedURL, &urls)))
 }
 
-func answerHandler(res http.ResponseWriter, req *http.Request) {
+func loadHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(res, "Only GET requests are allowed!", http.StatusBadRequest)
 		return
@@ -58,21 +81,6 @@ func answerHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.WriteHeader(http.StatusTemporaryRedirect)
-	res.Header().Set("Content-Type", "text/plain")
 	res.Header().Set("Location", url)
-	// res.Write([]byte(url))
-}
-
-func main() {
-	urls = make(map[string]string)
-
-	mux := http.NewServeMux()
-	mux.HandleFunc(`/`, mainHandler)
-	mux.HandleFunc(`/{id}`, answerHandler)
-
-	err := http.ListenAndServe(`:8080`, mux)
-	if err != nil {
-		panic(err)
-	}
+	res.WriteHeader(http.StatusTemporaryRedirect)
 }
