@@ -12,10 +12,10 @@ const (
 	LocalHost = "http://localhost:8080/"
 )
 
-var urls map[string]string
+// var urls map[string]string
 
 func main() {
-	urls = make(map[string]string)
+	// urls = make(map[string]string)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/`, mainRouteHandler)
@@ -56,13 +56,15 @@ func saveHandler(res http.ResponseWriter, req *http.Request) {
 	if len(lines) > 0 {
 		receivedURL = strings.TrimSpace(lines[len(lines)-1])
 	} else {
-		http.Error(res, "Пустой боди", http.StatusBadRequest)
+		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
 	}
 
 	res.WriteHeader(http.StatusCreated)
 	res.Header().Set("Content-Type", "text/plain")
-	res.Write([]byte(LocalHost + services.SaveURL(receivedURL, &urls)))
+	// res.Write([]byte(LocalHost + services.SaveURL(receivedURL, &urls)))
+	res.Write([]byte(LocalHost + services.SaveURL(receivedURL)))
+
 }
 
 func loadHandler(res http.ResponseWriter, req *http.Request) {
@@ -74,7 +76,8 @@ func loadHandler(res http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
 	shortURL := strings.TrimPrefix(path, "/")
 
-	url, ok := services.LoadURL(shortURL, &urls)
+	// url, ok := services.LoadURL(shortURL, &urls)
+	url, ok := services.LoadURL(shortURL)
 
 	if !ok {
 		http.Error(res, "URL not found", http.StatusBadRequest)

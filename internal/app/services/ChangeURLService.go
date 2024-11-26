@@ -9,12 +9,18 @@ const (
 	charset      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" // как бы тут через range и askii покрасивее
 )
 
-func SaveURL(url string, urls *map[string]string) (short string) {
-	v, ok := (*urls)[url]
+var urls = make(map[string]string)
 
+func SaveURL(url string) (short string) {
+	// func SaveURL(url string, urls *map[string]string) (short string) {
+
+	// v, ok := (*urls)[url]
+	v, ok := urls[url]
 	if !ok {
-		short = generateUniqAdress(adressLenght, urls)
-		(*urls)[url] = short
+		// short = generateUniqAdress(adressLenght, urls)
+		// (*urls)[url] = short
+		short = generateUniqAdress(adressLenght)
+		urls[url] = short
 	} else {
 		short = v
 	}
@@ -22,8 +28,10 @@ func SaveURL(url string, urls *map[string]string) (short string) {
 	return
 }
 
-func LoadURL(short string, urls *map[string]string) (url string, ok bool) {
-	for k, v := range *urls {
+//	func LoadURL(short string, urls *map[string]string) (url string, ok bool) {
+//		for k, v := range *urls {
+func LoadURL(short string) (url string, ok bool) {
+	for k, v := range urls {
 		if short == v {
 			url = k
 			ok = true
@@ -34,7 +42,8 @@ func LoadURL(short string, urls *map[string]string) (url string, ok bool) {
 	return
 }
 
-func generateUniqAdress(length int, urls *map[string]string) string {
+// func generateUniqAdress(length int, urls *map[string]string) string {
+func generateUniqAdress(length int) string {
 	b := make([]byte, length)
 
 	for {
@@ -42,7 +51,8 @@ func generateUniqAdress(length int, urls *map[string]string) string {
 			b[i] = charset[rand.Intn(len(charset))]
 		}
 
-		_, ok := (*urls)[string(b)]
+		// _, ok := (*urls)[string(b)]
+		_, ok := urls[string(b)]
 
 		if ok {
 			b = make([]byte, length)
