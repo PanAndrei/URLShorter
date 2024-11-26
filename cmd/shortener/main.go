@@ -12,6 +12,8 @@ const (
 	LocalHost = "http://localhost:8080/"
 )
 
+var urls map[string]string
+
 func mainHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Only POST requests are allowed!", http.StatusBadRequest)
@@ -27,9 +29,19 @@ func mainHandler(res http.ResponseWriter, req *http.Request) {
 
 	receivedURL := string(body)
 
+	receivedURL := strings.TrimSpace(string(body))
+
+	lines := strings.Split(receivedURL, "\n")
+	if len(lines) > 0 {
+		receivedURL = strings.TrimSpace(lines[0])
+	} else {
+		http.Error(res, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
 	res.WriteHeader(http.StatusCreated)
 	res.Header().Set("Content-Type", "text/plain")
-	res.Write([]byte(LocalHost + services.SaveURL(receivedURL)))
+	res.Write([]byte(LocalHost + services.SaveURL(receivedURL, &urls)))
 }
 
 func answerHandler(res http.ResponseWriter, req *http.Request) {
@@ -41,7 +53,7 @@ func answerHandler(res http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
 	shortURL := strings.TrimPrefix(path, "/")
 
-	url, ok := services.LoadURL(shortURL)
+	url, ok := services.LoadURL(shortURL, &urls)
 
 	if !ok {
 		http.Error(res, "URL not found", http.StatusBadRequest)
@@ -50,10 +62,13 @@ func answerHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusTemporaryRedirect)
 	res.Header().Set("Content-Type", "text/plain")
-	res.Write([]byte(url))
+	res.Header().Set("Location", url)
+	// res.Write([]byte(url))
 }
 
 func main() {
+	urls = make(map[string]string)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/`, mainHandler)
 	mux.HandleFunc(`/{id}`, answerHandler)

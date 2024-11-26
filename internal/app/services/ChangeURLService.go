@@ -10,26 +10,30 @@ const (
 	charset      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" // как бы тут через range и askii покрасивее
 )
 
-func SaveURL(url string) (short string) {
-	v, ok := urls[url]
+func SaveURL(url string, urls *map[string]string) (short string) {
+	v, ok := (*urls)[url]
 
 	fmt.Print("входящий урл" + url + "\n")
 
 	if !ok {
-		short = generateUniqAdress(AdressLenght)
+		short = generateUniqAdress(AdressLenght, urls)
 		fmt.Print("шорт" + short + "\n")
-		urls[url] = short
+		(*urls)[url] = short
 
-		fmt.Print(urls)
 	} else {
+		fmt.Print("повтор\n")
 		short = v
+	}
+
+	for k, v := range *urls {
+		print(k, "-****-", v)
 	}
 
 	return
 }
 
-func LoadURL(short string) (url string, ok bool) {
-	for k, v := range urls {
+func LoadURL(short string, urls *map[string]string) (url string, ok bool) {
+	for k, v := range *urls {
 		if short == v {
 			url = k
 			ok = true
@@ -39,9 +43,9 @@ func LoadURL(short string) (url string, ok bool) {
 	return
 }
 
-var urls = make(map[string]string)
+// var urls = make(map[string]string)
 
-func generateUniqAdress(length int) string {
+func generateUniqAdress(length int, urls *map[string]string) string {
 	b := make([]byte, length)
 
 	for {
@@ -49,7 +53,7 @@ func generateUniqAdress(length int) string {
 			b[i] = charset[rand.Intn(len(charset))]
 		}
 
-		_, ok := urls[string(b)]
+		_, ok := (*urls)[string(b)]
 
 		if ok {
 			b = make([]byte, length)
