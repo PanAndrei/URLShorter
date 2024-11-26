@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/PanAndrei/URLShorter/internal/app/Services"
+	"github.com/PanAndrei/URLShorter/internal/app/services"
 )
 
 const (
@@ -29,7 +29,7 @@ func mainHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusCreated)
 	res.Header().Set("Content-Type", "text/plain")
-	res.Write([]byte(LocalHost + Services.SaveURL(receivedURL)))
+	res.Write([]byte(LocalHost + services.SaveURL(receivedURL)))
 }
 
 func answerHandler(res http.ResponseWriter, req *http.Request) {
@@ -41,7 +41,7 @@ func answerHandler(res http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
 	shortURL := strings.TrimPrefix(path, "/")
 
-	url, ok := Services.LoadURL(shortURL)
+	url, ok := services.LoadURL(shortURL)
 
 	if !ok {
 		http.Error(res, "URL not found", http.StatusBadRequest)

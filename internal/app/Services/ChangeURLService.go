@@ -1,6 +1,7 @@
-package Services
+package services
 
 import (
+	"fmt"
 	"math/rand"
 )
 
@@ -12,9 +13,14 @@ const (
 func SaveURL(url string) (short string) {
 	v, ok := urls[url]
 
+	fmt.Print("входящий урл" + url + "\n")
+
 	if !ok {
 		short = generateUniqAdress(AdressLenght)
+		fmt.Print("шорт" + short + "\n")
 		urls[url] = short
+
+		fmt.Print(urls)
 	} else {
 		short = v
 	}
