@@ -1,3 +1,3 @@
-module github.com/PanAndrei/URLShorter
+module URLShorter
 
 go 1.22.6
