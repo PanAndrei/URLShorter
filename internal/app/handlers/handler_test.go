@@ -53,6 +53,8 @@ func TestMainPostHandler(t *testing.T) {
 			h.mainPostHandler(w, req)
 			res := w.Result()
 
+			defer res.Body.Close()
+
 			assert.Equal(t, test.want.responseCode, res.StatusCode)
 		})
 	}
