@@ -1,12 +1,11 @@
 package main
 
 import (
-	"log"
-
 	cnfg "URLShorter/internal/app/config"
 	handlers "URLShorter/internal/app/handlers"
 	repo "URLShorter/internal/app/repository"
 	serv "URLShorter/internal/app/service"
+	"log"
 )
 
 func main() {
@@ -20,5 +19,5 @@ func run() error {
 	repo := repo.NewStore()
 	shorter := serv.NewShorter(repo)
 
-	return handlers.Serve(cng.Handlers, *shorter)
+	return handlers.Serve(cng.Handlers, shorter)
 }

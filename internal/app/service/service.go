@@ -11,7 +11,7 @@ const (
 	charset      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" // как бы тут через range и askii покрасивее
 )
 
-type Repository interface {
+type Short interface {
 	SetShortURL(url *repo.URL) (u *repo.URL)
 	GetFullURL(url *repo.URL) (u *repo.URL, err error)
 }

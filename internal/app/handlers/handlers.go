@@ -11,8 +11,8 @@ import (
 	sht "URLShorter/internal/app/service"
 )
 
-func Serve(cnf cnfg.Config, sht sht.Shorter) error {
-	h := newHandlers(sht)
+func Serve(cnf cnfg.Config, sht sht.Short) error {
+	h := NewHandlers(sht)
 	router := newRouter(h)
 
 	srv := &http.Server{
@@ -24,10 +24,10 @@ func Serve(cnf cnfg.Config, sht sht.Shorter) error {
 }
 
 type handlers struct {
-	shorter sht.Shorter
+	shorter sht.Short
 }
 
-func newHandlers(shorter sht.Shorter) *handlers {
+func NewHandlers(shorter sht.Short) *handlers {
 	return &handlers{
 		shorter: shorter,
 	}
