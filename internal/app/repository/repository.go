@@ -21,7 +21,7 @@ func NewStore() *Store {
 }
 
 type URL struct {
-	FullUrl  string
+	FullURL  string
 	ShortURL string
 }
 
@@ -34,15 +34,15 @@ func newErrURLNotFound() error {
 }
 
 func (store *Store) SaveURL(u *URL) {
-	store.s[u.FullUrl] = u.ShortURL
+	store.s[u.FullURL] = u.ShortURL
 }
 
 func (store *Store) LoadURL(u *URL) (r *URL, err error) {
-	if u.FullUrl == "" && u.ShortURL == "" {
+	if u.FullURL == "" && u.ShortURL == "" {
 		return nil, newErrURLNotFound() // empty request
 	} else if u.ShortURL == "" {
 		return store.loadByFullURL(u)
-	} else if u.FullUrl == "" {
+	} else if u.FullURL == "" {
 		return store.loadByShortURL(u)
 	}
 
@@ -60,7 +60,7 @@ func (store *Store) IsUniqueShort(s string) bool {
 }
 
 func (store *Store) loadByFullURL(u *URL) (r *URL, err error) {
-	v, ok := store.s[u.FullUrl]
+	v, ok := store.s[u.FullURL]
 
 	if !ok {
 		return nil, newErrURLNotFound()
@@ -73,7 +73,7 @@ func (store *Store) loadByFullURL(u *URL) (r *URL, err error) {
 func (store *Store) loadByShortURL(u *URL) (r *URL, err error) {
 	for k, v := range store.s {
 		if u.ShortURL == v {
-			u.FullUrl = k
+			u.FullURL = k
 			return u, nil
 		}
 	}

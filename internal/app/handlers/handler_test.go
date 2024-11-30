@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	repo "URLShorter/internal/app/repository"
 
 	assert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type MockShortener struct{}
@@ -20,11 +22,17 @@ func (m *MockShortener) SetShortURL(u *repo.URL) *repo.URL {
 
 func (m *MockShortener) GetFullURL(u *repo.URL) (*repo.URL, error) {
 
-	return &repo.URL{FullUrl: "m.FullURL"}, nil
+	return &repo.URL{FullURL: "m.FullURL"}, nil
 }
 
 func TestMainPostHandler(t *testing.T) {
 	h := NewHandlers(&MockShortener{})
+
+	type set struct {
+		method      string
+		path        string
+		contentType string
+	}
 
 	type want struct {
 		responseCode int
@@ -34,21 +42,40 @@ func TestMainPostHandler(t *testing.T) {
 
 	tests := []struct {
 		name string
+		set  set
 		want want
 	}{
 		{
-			name: "test #1",
+			name: "test #1 right response",
+			set: set{
+				method:      http.MethodPost,
+				path:        "/",
+				contentType: "text/plain",
+			},
 			want: want{
 				responseCode: http.StatusCreated,
 				request:      "",
 				contentType:  "text/plain",
 			},
 		},
+		{
+			name: "test #2 wrong method",
+			set: set{
+				method:      http.MethodGet,
+				path:        "/",
+				contentType: "text/plain",
+			},
+			want: want{
+				responseCode: http.StatusBadRequest,
+				request:      "",
+				contentType:  "text/plain; charset=utf-8",
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/", nil)
+			req := httptest.NewRequest(test.set.method, test.set.path, nil)
 			w := httptest.NewRecorder()
 			h.mainPostHandler(w, req)
 			res := w.Result()
@@ -56,7 +83,76 @@ func TestMainPostHandler(t *testing.T) {
 			defer res.Body.Close()
 
 			assert.Equal(t, test.want.responseCode, res.StatusCode)
+
+			_, err := io.ReadAll(res.Body)
+			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			require.NoError(t, err)
 		})
 	}
+}
 
+func TestMainGetHandler(t *testing.T) {
+	h := NewHandlers(&MockShortener{})
+
+	type set struct {
+		method      string
+		path        string
+		contentType string
+	}
+
+	type want struct {
+		responseCode int
+		request      string
+		contentType  string
+	}
+
+	tests := []struct {
+		name string
+		set  set
+		want want
+	}{
+		{
+			name: "test #1 right response",
+			set: set{
+				method:      http.MethodGet,
+				path:        "/test",
+				contentType: "text/plain",
+			},
+			want: want{
+				responseCode: http.StatusTemporaryRedirect,
+				request:      "",
+				contentType:  "",
+			},
+		},
+		{
+			name: "test #2 wrong method",
+			set: set{
+				method:      http.MethodPost,
+				path:        "/test",
+				contentType: "text/plain",
+			},
+			want: want{
+				responseCode: http.StatusBadRequest,
+				request:      "",
+				contentType:  "text/plain; charset=utf-8",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(test.set.method, test.set.path, nil)
+			w := httptest.NewRecorder()
+			h.mainGetHandler(w, req)
+			res := w.Result()
+
+			defer res.Body.Close()
+
+			assert.Equal(t, test.want.responseCode, res.StatusCode)
+
+			_, err := io.ReadAll(res.Body)
+			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			require.NoError(t, err)
+		})
+	}
 }

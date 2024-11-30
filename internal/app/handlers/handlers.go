@@ -66,13 +66,13 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	u := repo.URL{
-		FullUrl: receivedURL,
+		FullURL: receivedURL,
 	}
 
 	short := h.shorter.SetShortURL(&u).ShortURL
 
-	res.WriteHeader(http.StatusCreated)
 	res.Header().Set("Content-Type", "text/plain")
+	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte(cnf.LocalHost + short))
 }
 
@@ -94,6 +94,6 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.Header().Set("Location", url.FullUrl)
+	res.Header().Set("Location", url.FullURL)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }

@@ -49,7 +49,7 @@ func (serv *Shorter) GetFullURL(url *repo.URL) (u *repo.URL, err error) {
 	return newU, nil
 }
 
-func (s *Shorter) generateUniqAdress() string {
+func (serv *Shorter) generateUniqAdress() string {
 	b := make([]byte, adressLenght)
 
 	for {
@@ -57,7 +57,7 @@ func (s *Shorter) generateUniqAdress() string {
 			b[i] = charset[rand.Intn(len(charset))]
 		}
 
-		if !s.store.IsUniqueShort(string(b)) {
+		if !serv.store.IsUniqueShort(string(b)) {
 			b = make([]byte, adressLenght)
 		} else {
 			break
