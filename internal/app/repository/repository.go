@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"sync"
 )
 
 type Repository interface {
@@ -11,12 +12,14 @@ type Repository interface {
 }
 
 type Store struct {
-	s map[string]string // + race
+	mux *sync.Mutex
+	s   map[string]string
 }
 
 func NewStore() *Store {
 	return &Store{
-		s: make(map[string]string),
+		mux: &sync.Mutex{},
+		s:   make(map[string]string),
 	}
 }
 
@@ -34,10 +37,16 @@ func newErrURLNotFound() error {
 }
 
 func (store *Store) SaveURL(u *URL) {
+	store.mux.Lock()
+	defer store.mux.Unlock()
+
 	store.s[u.FullURL] = u.ShortURL
 }
 
 func (store *Store) LoadURL(u *URL) (r *URL, err error) {
+	store.mux.Lock()
+	defer store.mux.Unlock()
+
 	if u.FullURL == "" && u.ShortURL == "" {
 		return nil, newErrURLNotFound() // empty request
 	} else if u.ShortURL == "" {
@@ -50,6 +59,9 @@ func (store *Store) LoadURL(u *URL) (r *URL, err error) {
 }
 
 func (store *Store) IsUniqueShort(s string) bool {
+	store.mux.Lock()
+	defer store.mux.Unlock()
+
 	for _, v := range store.s {
 		if v == s {
 			return false

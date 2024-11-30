@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
+
 	cnf "URLShorter/internal/app/config"
 	cnfg "URLShorter/internal/app/handlers/config"
 	repo "URLShorter/internal/app/repository"
@@ -13,11 +15,19 @@ import (
 
 func Serve(cnf cnfg.Config, sht sht.Short) error {
 	h := NewHandlers(sht)
-	router := newRouter(h)
+	r := newRouter(h)
+
+	// r.Route("", func(r chi.Router) {
+	// 	r.Post("/", h.mainPostHandler)
+	// 	r.Get("/{i}", h.mainGetHandler)
+	// })
+
+	r.Post("/", h.mainPostHandler)
+	r.Get("/{i}", h.mainGetHandler)
 
 	srv := &http.Server{
 		Addr:    cnf.ServerAdress,
-		Handler: router,
+		Handler: r,
 	}
 
 	return srv.ListenAndServe()
@@ -33,13 +43,9 @@ func NewHandlers(shorter sht.Short) *handlers {
 	}
 }
 
-func newRouter(h *handlers) *http.ServeMux {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("POST /", h.mainPostHandler)
-	mux.HandleFunc("GET /{i}", h.mainGetHandler)
-
-	return mux
+func newRouter(h *handlers) *chi.Mux {
+	r := chi.NewRouter()
+	return r
 }
 
 func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
@@ -49,7 +55,7 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	body, err := io.ReadAll(req.Body)
-
+	// close?
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
@@ -73,7 +79,7 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(cnf.LocalHost + short))
+	res.Write([]byte(cnf.LocalHost + short)) // как бы по другому достать локалхост
 }
 
 func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
@@ -82,7 +88,8 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	iStr := req.PathValue("i")
+	iStr := chi.URLParam(req, "i")
+
 	u := repo.URL{
 		ShortURL: iStr,
 	}
