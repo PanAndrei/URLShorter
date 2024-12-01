@@ -7,20 +7,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	cnf "URLShorter/internal/app/config"
 	cnfg "URLShorter/internal/app/handlers/config"
 	repo "URLShorter/internal/app/repository"
 	sht "URLShorter/internal/app/service"
 )
 
 func Serve(cnf cnfg.Config, sht sht.Short) error {
-	h := NewHandlers(sht)
+	h := NewHandlers(sht, cnf)
 	r := newRouter(h)
-
-	// r.Route("", func(r chi.Router) {
-	// 	r.Post("/", h.mainPostHandler)
-	// 	r.Get("/{i}", h.mainGetHandler)
-	// })
 
 	r.Post("/", h.mainPostHandler)
 	r.Get("/{i}", h.mainGetHandler)
@@ -35,11 +29,13 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 
 type handlers struct {
 	shorter sht.Short
+	config  cnfg.Config
 }
 
-func NewHandlers(shorter sht.Short) *handlers {
+func NewHandlers(shorter sht.Short, config cnfg.Config) *handlers {
 	return &handlers{
 		shorter: shorter,
+		config:  config,
 	}
 }
 
@@ -79,7 +75,7 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(cnf.LocalHost + short)) // как бы по другому достать локалхост
+	res.Write([]byte(h.config.ReturnAdress + short))
 }
 
 func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {

@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	cnfg "URLShorter/internal/app/handlers/config"
 	repo "URLShorter/internal/app/repository"
 
 	assert "github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func (m *MockShortener) GetFullURL(u *repo.URL) (*repo.URL, error) {
 }
 
 func TestMainPostHandler(t *testing.T) {
-	h := NewHandlers(&MockShortener{})
+	h := NewHandlers(&MockShortener{}, cnfg.Config{})
 
 	type set struct {
 		method      string
@@ -92,7 +93,7 @@ func TestMainPostHandler(t *testing.T) {
 }
 
 func TestMainGetHandler(t *testing.T) {
-	h := NewHandlers(&MockShortener{})
+	h := NewHandlers(&MockShortener{}, cnfg.Config{})
 
 	type set struct {
 		method      string
