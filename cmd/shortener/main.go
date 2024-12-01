@@ -5,12 +5,13 @@ import (
 	handlers "URLShorter/internal/app/handlers"
 	repo "URLShorter/internal/app/repository"
 	serv "URLShorter/internal/app/service"
+	"fmt"
 	"log"
 )
 
 func main() {
 	flags.ParsFlags()
-
+	fmt.Println("Running server on", flags.Cnfg.Handlers.ServerAdress)
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
