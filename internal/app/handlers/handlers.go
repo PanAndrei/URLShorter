@@ -14,7 +14,7 @@ import (
 
 func Serve(cnf cnfg.Config, sht sht.Short) error {
 	h := NewHandlers(sht, cnf)
-	r := newRouter(h)
+	r := chi.NewRouter()
 
 	r.Post("/", h.mainPostHandler)
 	r.Get("/{i}", h.mainGetHandler)
@@ -39,11 +39,6 @@ func NewHandlers(shorter sht.Short, config cnfg.Config) *handlers {
 	}
 }
 
-func newRouter(h *handlers) *chi.Mux {
-	r := chi.NewRouter()
-	return r
-}
-
 func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Only POST requests are allowed!", http.StatusBadRequest)
@@ -51,7 +46,9 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	body, err := io.ReadAll(req.Body)
-	// close?
+
+	defer req.Body.Close()
+
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return

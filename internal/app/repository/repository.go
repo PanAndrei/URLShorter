@@ -40,7 +40,7 @@ func (store *Store) SaveURL(u *URL) {
 	store.mux.Lock()
 	defer store.mux.Unlock()
 
-	store.s[u.FullURL] = u.ShortURL
+	store.s[u.ShortURL] = u.FullURL
 }
 
 func (store *Store) LoadURL(u *URL) (r *URL, err error) {
@@ -62,32 +62,28 @@ func (store *Store) IsUniqueShort(s string) bool {
 	store.mux.Lock()
 	defer store.mux.Unlock()
 
-	for _, v := range store.s {
-		if v == s {
-			return false
-		}
-	}
+	_, ok := store.s[s]
 
-	return true
+	return !ok
 }
 
 func (store *Store) loadByFullURL(u *URL) (r *URL, err error) {
-	v, ok := store.s[u.FullURL]
-
-	if !ok {
-		return nil, newErrURLNotFound()
+	for k, v := range store.s {
+		if v == u.FullURL {
+			u.ShortURL = k
+			return u, nil
+		}
 	}
 
-	u.ShortURL = v
-	return u, nil
+	return nil, newErrURLNotFound()
 }
 
 func (store *Store) loadByShortURL(u *URL) (r *URL, err error) {
-	for k, v := range store.s {
-		if u.ShortURL == v {
-			u.FullURL = k
-			return u, nil
-		}
+	k, ok := store.s[u.ShortURL]
+
+	if ok {
+		u.FullURL = k
+		return u, nil
 	}
 
 	return nil, newErrURLNotFound()
