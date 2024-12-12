@@ -6,13 +6,16 @@ import (
 	log "URLShorter/internal/app/logger"
 	repo "URLShorter/internal/app/repository"
 	serv "URLShorter/internal/app/service"
+
+	"fmt"
+	l "log"
 )
 
 func main() {
 	flags.ParsFlags()
 
 	if err := run(); err != nil {
-		// log fatal
+		l.Fatal(fmt.Println("Error launching server"))
 	}
 }
 
