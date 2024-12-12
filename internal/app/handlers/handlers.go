@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	cnfg "URLShorter/internal/app/handlers/config"
+	log "URLShorter/internal/app/logger"
 	repo "URLShorter/internal/app/repository"
 	sht "URLShorter/internal/app/service"
 )
@@ -16,8 +17,8 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	h := NewHandlers(sht, cnf)
 	r := chi.NewRouter()
 
-	r.Post("/", h.mainPostHandler)
-	r.Get("/{i}", h.mainGetHandler)
+	r.Post("/", log.WithLoggingRequest(h.mainPostHandler))
+	r.Get("/{i}", log.WithLoggingRequest(h.mainGetHandler))
 
 	srv := &http.Server{
 		Addr:    cnf.ServerAdress,
@@ -47,12 +48,12 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 
 	body, err := io.ReadAll(req.Body)
 
-	defer req.Body.Close()
-
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
 	}
+
+	defer req.Body.Close()
 
 	receivedURL := strings.TrimSpace(string(body))
 	lines := strings.Split(receivedURL, "\n")
