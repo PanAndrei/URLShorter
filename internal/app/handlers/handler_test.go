@@ -211,7 +211,7 @@ func TestApishortenHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			body := models.APIRequest{Url: "test"}
+			body := models.APIRequest{URL: "test"}
 			data, _ := json.Marshal(body)
 			req := httptest.NewRequest(test.set.method, test.set.path, bytes.NewBuffer(data))
 

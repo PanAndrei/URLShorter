@@ -96,7 +96,7 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 	h.shorter.SetShortURL(&u)
 
 	var response models.APIResponse
-	data, err := json.Marshal(response.FromUrl(u, h.config.ReturnAdress))
+	data, err := json.Marshal(response.FromURL(u, h.config.ReturnAdress))
 
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)

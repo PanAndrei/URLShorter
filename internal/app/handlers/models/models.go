@@ -5,12 +5,12 @@ import (
 )
 
 type APIRequest struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 func (r *APIRequest) ToURL(req APIRequest) repo.URL {
 	return repo.URL{
-		FullURL: req.Url,
+		FullURL: req.URL,
 	}
 }
 
@@ -18,7 +18,7 @@ type APIResponse struct {
 	Result string `json:"result"`
 }
 
-func (r *APIResponse) FromUrl(rep repo.URL, host string) APIResponse {
+func (r *APIResponse) FromURL(rep repo.URL, host string) APIResponse {
 	return APIResponse{
 		Result: host + "/" + rep.ShortURL,
 	}
