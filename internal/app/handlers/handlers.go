@@ -22,10 +22,6 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	r.Use(log.WithLoggingRequest)
 	r.Use(gzp.WithGzipCompression)
 
-	// r.Post("/", log.WithLoggingRequest(h.mainPostHandler))
-	// r.Post("/api/shorten", log.WithLoggingRequest(h.apiShortenHandler))
-	// r.Get("/{i}", log.WithLoggingRequest(h.mainGetHandler))
-
 	r.Post("/", h.mainPostHandler)
 	r.Post("/api/shorten", h.apiShortenHandler)
 	r.Get("/{i}", h.mainGetHandler)

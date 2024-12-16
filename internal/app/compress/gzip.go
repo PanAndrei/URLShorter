@@ -23,9 +23,14 @@ func WithGzipCompression(next http.Handler) http.Handler {
 			return
 		}
 
+		if !strings.Contains(r.Header.Get("Content-Type"), "application/json") || !strings.Contains(r.Header.Get("Content-Type"), "text/html") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			io.WriteString(w, err.Error())
+			http.Error(w, "Bad compression", http.StatusBadRequest)
 			return
 		}
 		defer gz.Close()
