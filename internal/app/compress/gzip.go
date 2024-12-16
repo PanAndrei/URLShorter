@@ -17,12 +17,31 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 }
 
 type gzipReader struct {
-	io.ReadCloser
-	Reader io.Reader
+	r  io.ReadCloser
+	zr *gzip.Reader
 }
 
 func (r gzipReader) Read(p []byte) (int, error) {
-	return r.Reader.Read(p)
+	return r.zr.Read(p)
+}
+
+func (c *gzipReader) Close() error {
+	if err := c.r.Close(); err != nil {
+		return err
+	}
+	return c.zr.Close()
+}
+
+func newGzipReader(r io.ReadCloser) (*gzipReader, error) {
+	zr, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &gzipReader{
+		r:  r,
+		zr: zr,
+	}, nil
 }
 
 func WithGzipCompression(next http.Handler) http.Handler {
@@ -57,15 +76,15 @@ func WithGzipDecompression(next http.Handler) http.Handler {
 			return
 		}
 
-		gz, err := gzip.NewReader(r.Body)
+		gz, err := newGzipReader(r.Body)
 
 		if err != nil {
 			http.Error(w, "Bad decompression", http.StatusBadRequest)
 			return
 		}
-		defer gz.Close()
 
-		r.Body = gzipReader{Reader: gz}
+		r.Body = gz
+		defer gz.Close()
 
 		next.ServeHTTP(w, r)
 	})
