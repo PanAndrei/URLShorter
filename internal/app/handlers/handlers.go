@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	gzp "URLShorter/internal/app/compress"
 	cnfg "URLShorter/internal/app/handlers/config"
 	models "URLShorter/internal/app/handlers/models"
 	log "URLShorter/internal/app/logger"
@@ -18,10 +19,16 @@ import (
 func Serve(cnf cnfg.Config, sht sht.Short) error {
 	h := NewHandlers(sht, cnf)
 	r := chi.NewRouter()
+	r.Use(log.WithLoggingRequest)
+	r.Use(gzp.WithGzipCompression)
 
-	r.Post("/", log.WithLoggingRequest(h.mainPostHandler))
-	r.Post("/api/shorten", log.WithLoggingRequest(h.apiShortenHandler))
-	r.Get("/{i}", log.WithLoggingRequest(h.mainGetHandler))
+	// r.Post("/", log.WithLoggingRequest(h.mainPostHandler))
+	// r.Post("/api/shorten", log.WithLoggingRequest(h.apiShortenHandler))
+	// r.Get("/{i}", log.WithLoggingRequest(h.mainGetHandler))
+
+	r.Post("/", h.mainPostHandler)
+	r.Post("/api/shorten", h.apiShortenHandler)
+	r.Get("/{i}", h.mainGetHandler)
 
 	srv := &http.Server{
 		Addr:    cnf.ServerAdress,

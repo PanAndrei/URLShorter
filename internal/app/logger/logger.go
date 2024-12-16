@@ -52,12 +52,13 @@ func Initialize(level string) error {
 	return nil
 }
 
-func WithLoggingRequest(h http.HandlerFunc) http.HandlerFunc {
-	logFn := func(w http.ResponseWriter, r *http.Request) {
+func WithLoggingRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		responseData := &responseData{
 			status: 0,
 			size:   0,
 		}
+
 		lw := loggingResponseWriter{
 			ResponseWriter: w,
 			responseData:   responseData,
@@ -67,7 +68,7 @@ func WithLoggingRequest(h http.HandlerFunc) http.HandlerFunc {
 		uri := r.RequestURI
 		method := r.Method
 
-		h.ServeHTTP(&lw, r)
+		// h.ServeHTTP(&lw, r)
 
 		duration := int64(time.Since(start))
 
@@ -78,7 +79,52 @@ func WithLoggingRequest(h http.HandlerFunc) http.HandlerFunc {
 			zap.String("status", strconv.Itoa(responseData.status)),
 			zap.String("size", strconv.Itoa(responseData.size)),
 		)
-	}
 
-	return http.HandlerFunc(logFn)
+		next.ServeHTTP(&lw, r)
+	})
+
+	// logFn := func(w http.ResponseWriter, r *http.Request) {
+	// 	responseData := &responseData{
+	// 		status: 0,
+	// 		size:   0,
+	// 	}
+	// 	lw := loggingResponseWriter{
+	// 		ResponseWriter: w,
+	// 		responseData:   responseData,
+	// 	}
+
+	// 	start := time.Now()
+	// 	uri := r.RequestURI
+	// 	method := r.Method
+
+	// 	h.ServeHTTP(&lw, r)
+
+	// 	duration := int64(time.Since(start))
+
+	// 	log.Info("logging requests",
+	// 		zap.String("uri", uri),
+	// 		zap.String("method", method),
+	// 		zap.String("duration", strconv.Itoa(int(duration))),
+	// 		zap.String("status", strconv.Itoa(responseData.status)),
+	// 		zap.String("size", strconv.Itoa(responseData.size)),
+	// 	)
+	// }
+
+	// return http.HandlerFunc(logFn)
 }
+
+// func MyMiddleware(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 	  // create new context from `r` request context, and assign key `"user"`
+// 	  // to value of `"123"`
+// 	  ctx := context.WithValue(r.Context(), "user", "123")
+
+// 	  // call the next handler in the chain, passing the response writer and
+// 	  // the updated request object with the new context value.
+// 	  //
+// 	  // note: context.Context values are nested, so any previously set
+// 	  // values will be accessible as well, and the new `"user"` key
+// 	  // will be accessible from this point forward.
+// 	  next.ServeHTTP(w, r.WithContext(ctx))
+// 	})
+//   }
