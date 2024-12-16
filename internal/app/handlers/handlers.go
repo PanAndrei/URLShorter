@@ -21,6 +21,7 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	r := chi.NewRouter()
 	r.Use(log.WithLoggingRequest)
 	r.Use(gzp.WithGzipCompression)
+	r.Use(gzp.WithGzipDecompression)
 
 	r.Post("/", h.mainPostHandler)
 	r.Post("/api/shorten", h.apiShortenHandler)
