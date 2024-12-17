@@ -68,6 +68,7 @@ func WithLoggingRequest(next http.Handler) http.Handler {
 		uri := r.RequestURI
 		method := r.Method
 
+		next.ServeHTTP(&lw, r)
 		duration := int64(time.Since(start))
 
 		log.Info("logging requests",
@@ -77,7 +78,5 @@ func WithLoggingRequest(next http.Handler) http.Handler {
 			zap.String("status", strconv.Itoa(responseData.status)),
 			zap.String("size", strconv.Itoa(responseData.size)),
 		)
-
-		next.ServeHTTP(&lw, r)
 	})
 }
