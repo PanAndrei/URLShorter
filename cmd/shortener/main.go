@@ -24,7 +24,8 @@ func run() error {
 		return err
 	}
 
-	repo := repo.NewStore()
+	// repo := repo.NewStore()
+	repo, _ := repo.NewFileStore(flags.Cnfg.Handlers.FileStorageAdress)
 	shorter := serv.NewShorter(repo)
 
 	return handlers.Serve(flags.Cnfg.Handlers, shorter)
