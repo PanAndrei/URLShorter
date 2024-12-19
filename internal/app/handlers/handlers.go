@@ -48,11 +48,6 @@ func NewHandlers(shorter sht.Short, config cnfg.Config) *handlers {
 }
 
 func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		http.Error(res, "Only POST requests are allowed!", http.StatusBadRequest)
-		return
-	}
-
 	body, err := io.ReadAll(req.Body)
 
 	if err != nil {
@@ -84,11 +79,6 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		http.Error(res, "Only POST requests are allowed!", http.StatusBadRequest)
-		return
-	}
-
 	var request models.APIRequest
 
 	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
@@ -113,11 +103,6 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 }
 
 func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
-		http.Error(res, "Only GET requests are allowed!", http.StatusBadRequest)
-		return
-	}
-
 	iStr := chi.URLParam(req, "i")
 
 	u := repo.URL{
