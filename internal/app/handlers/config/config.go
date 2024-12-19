@@ -1,6 +1,7 @@
 package config
 
 type Config struct {
-	ServerAdress string
-	ReturnAdress string
+	ServerAdress      string
+	ReturnAdress      string
+	FileStorageAdress string
 }

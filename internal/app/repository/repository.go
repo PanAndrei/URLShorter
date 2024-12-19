@@ -24,8 +24,9 @@ func NewStore() *Store {
 }
 
 type URL struct {
-	FullURL  string
-	ShortURL string
+	FullURL  string `json:"originalUrl"`
+	ShortURL string `json:"shortUrl"`
+	UUID     int    `json:"uuid"`
 }
 
 var (
