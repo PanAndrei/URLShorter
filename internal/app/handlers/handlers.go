@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -123,8 +125,16 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) {
-	if err := h.db.DB.Ping(); err != nil {
+func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) { // тесты
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	if err := h.db.Open(); err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.db.DB.PingContext(ctx); err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
