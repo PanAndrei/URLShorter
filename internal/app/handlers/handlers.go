@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -130,12 +131,14 @@ func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) { // те�
 	defer cancel()
 
 	if err := h.db.Open(); err != nil {
+		fmt.Print(err)
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := h.db.DB.PingContext(ctx); err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
+		fmt.Print(err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
