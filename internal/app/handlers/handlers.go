@@ -16,8 +16,8 @@ import (
 	sht "URLShorter/internal/app/service"
 )
 
-func Serve(cnf cnfg.Config, sht sht.Short) error {
-	h := NewHandlers(sht, cnf)
+func Serve(cnf cnfg.Config, sht sht.Short, db *repo.SQLStorage) error {
+	h := NewHandlers(sht, cnf, db)
 	r := chi.NewRouter()
 	r.Use(log.WithLoggingRequest)
 	r.Use(gzp.WithGzipCompression)
@@ -26,6 +26,7 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	r.Post("/", h.mainPostHandler)
 	r.Post("/api/shorten", h.apiShortenHandler)
 	r.Get("/{i}", h.mainGetHandler)
+	r.Get("/ping", h.pingDB)
 
 	srv := &http.Server{
 		Addr:    cnf.ServerAdress,
@@ -38,12 +39,14 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 type handlers struct {
 	shorter sht.Short
 	config  cnfg.Config
+	db      *repo.SQLStorage // temp
 }
 
-func NewHandlers(shorter sht.Short, config cnfg.Config) *handlers {
+func NewHandlers(shorter sht.Short, config cnfg.Config, db *repo.SQLStorage) *handlers {
 	return &handlers{
 		shorter: shorter,
 		config:  config,
+		db:      db,
 	}
 }
 
@@ -118,4 +121,13 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Location", url.FullURL)
 	res.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) {
+	if err := h.db.DB.Ping(); err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
 }

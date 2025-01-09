@@ -5,12 +5,6 @@ import (
 	"sync"
 )
 
-type Repository interface {
-	SaveURL(u *URL)
-	LoadURL(u *URL) (r *URL, err error)
-	IsUniqueShort(s string) bool
-}
-
 type Store struct {
 	mux *sync.Mutex
 	s   map[string]string
