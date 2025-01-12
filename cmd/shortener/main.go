@@ -26,7 +26,7 @@ func run() error {
 
 	storageRouter := repo.NewStorageRouter()
 	db := repo.NewDB(flags.Cnfg.Handlers.PostgreSQLAdress) // temp
-	repo, err := storageRouter.GetStorage(flags.Cnfg.Handlers.FileStorageAdress)
+	repo, err := storageRouter.GetStorage(flags.Cnfg.Handlers)
 
 	if err != nil {
 		return err
@@ -34,5 +34,5 @@ func run() error {
 
 	shorter := serv.NewShorter(repo)
 
-	return handlers.Serve(flags.Cnfg.Handlers, shorter, db)
+	return handlers.Serve(flags.Cnfg.Handlers, shorter, db) // tmp
 }
