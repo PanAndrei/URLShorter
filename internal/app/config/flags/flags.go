@@ -6,14 +6,6 @@ import (
 	"os"
 )
 
-const (
-	DBhost     = "localhost"
-	DBport     = 5432
-	DBuser     = "postgres"
-	DBpassword = ""
-	DBdbname   = "short"
-)
-
 type mainConfig struct {
 	Handlers hadlCnfg.Config
 }
@@ -25,7 +17,7 @@ var Cnfg = mainConfig{
 func ParsFlags() {
 	flag.StringVar(&Cnfg.Handlers.ServerAdress, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&Cnfg.Handlers.ReturnAdress, "b", "http://localhost:8080", "redirect adress")
-	flag.StringVar(&Cnfg.Handlers.FileStorageAdress, "f", "repository.json", "local file url's storage")
+	flag.StringVar(&Cnfg.Handlers.FileStorageAdress, "f", "", "local file url's storage")
 	flag.StringVar(&Cnfg.Handlers.PostgreSQLAdress, "d", "", "SQL base adress")
 	flag.Parse()
 
