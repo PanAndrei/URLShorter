@@ -81,3 +81,7 @@ func (store *FileStore) IsUniqueShort(s string) bool {
 
 	return err != nil
 }
+
+func (d *FileStore) Ping() error {
+	return nil
+}

@@ -29,8 +29,12 @@ func (m *MockShortener) GetFullURL(u *repo.URL) (*repo.URL, error) {
 	return &repo.URL{FullURL: "m.FullURL"}, nil
 }
 
+func (m *MockShortener) Ping() error {
+	return nil
+}
+
 func TestMainPostHandler(t *testing.T) {
-	h := NewHandlers(&MockShortener{}, cnfg.Config{}, repo.NewDB("d"))
+	h := NewHandlers(&MockShortener{}, cnfg.Config{})
 
 	type set struct {
 		method      string
@@ -94,7 +98,7 @@ func TestMainPostHandler(t *testing.T) {
 }
 
 func TestMainGetHandler(t *testing.T) {
-	h := NewHandlers(&MockShortener{}, cnfg.Config{}, repo.NewDB("d"))
+	h := NewHandlers(&MockShortener{}, cnfg.Config{})
 
 	type set struct {
 		method      string
@@ -158,7 +162,7 @@ func TestMainGetHandler(t *testing.T) {
 }
 
 func TestApishortenHandler(t *testing.T) {
-	h := NewHandlers(&MockShortener{}, cnfg.Config{}, repo.NewDB("d"))
+	h := NewHandlers(&MockShortener{}, cnfg.Config{})
 
 	type set struct {
 		method      string

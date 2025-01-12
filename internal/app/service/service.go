@@ -14,6 +14,7 @@ const (
 type Short interface {
 	SetShortURL(url *repo.URL) (u *repo.URL)
 	GetFullURL(url *repo.URL) (u *repo.URL, err error)
+	Ping() error
 }
 
 type Shorter struct {
@@ -65,4 +66,8 @@ func (serv *Shorter) generateUniqAdress() string {
 	}
 
 	return string(b)
+}
+
+func (serv *Shorter) Ping() error {
+	return serv.store.Ping()
 }

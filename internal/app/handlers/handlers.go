@@ -1,13 +1,10 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -19,8 +16,8 @@ import (
 	sht "URLShorter/internal/app/service"
 )
 
-func Serve(cnf cnfg.Config, sht sht.Short, db *repo.SQLStorage) error {
-	h := NewHandlers(sht, cnf, db)
+func Serve(cnf cnfg.Config, sht sht.Short) error {
+	h := NewHandlers(sht, cnf)
 	r := chi.NewRouter()
 	r.Use(log.WithLoggingRequest)
 	r.Use(gzp.WithGzipCompression)
@@ -42,14 +39,12 @@ func Serve(cnf cnfg.Config, sht sht.Short, db *repo.SQLStorage) error {
 type handlers struct {
 	shorter sht.Short
 	config  cnfg.Config
-	db      *repo.SQLStorage // temp
 }
 
-func NewHandlers(shorter sht.Short, config cnfg.Config, db *repo.SQLStorage) *handlers {
+func NewHandlers(shorter sht.Short, config cnfg.Config) *handlers {
 	return &handlers{
 		shorter: shorter,
 		config:  config,
-		db:      db,
 	}
 }
 
@@ -127,21 +122,10 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) { // тесты
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	if err := h.db.Open(); err != nil {
-		fmt.Print(err)
+	if err := h.shorter.Ping(); err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.db.DB.PingContext(ctx); err != nil {
-		fmt.Print(err)
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	res.WriteHeader(http.StatusOK)
-	h.db.Close()
 }

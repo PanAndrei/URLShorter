@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -112,4 +113,11 @@ func (d *SQLStorage) Open() error {
 
 func (d *SQLStorage) Close() {
 	d.DB.Close()
+}
+
+func (d *SQLStorage) Ping() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	return d.DB.PingContext(ctx)
 }

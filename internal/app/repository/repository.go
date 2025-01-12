@@ -83,3 +83,7 @@ func (store *Store) loadByShortURL(u *URL) (r *URL, err error) {
 
 	return nil, newErrURLNotFound()
 }
+
+func (d *Store) Ping() error {
+	return nil
+}
