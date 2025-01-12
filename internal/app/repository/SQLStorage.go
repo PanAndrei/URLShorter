@@ -35,20 +35,24 @@ func (d *SQLStorage) Open() error {
 		return err
 	}
 
-	_, err = db.QueryContext(ctx, "SELECT 1 FROM information_schema.tables WHERE table_name = 'urls'")
+	rows, err := db.QueryContext(ctx, "SELECT 1 FROM information_schema.tables WHERE table_name = 'urls'")
 	if err != nil {
 		_, err = db.ExecContext(ctx, `
-        CREATE TABLE urls (
-           full_url TEXT,
-           short_url TEXT,
-           uuid INTEGER
-       );
-        `)
+			   CREATE TABLE urls (
+				  full_url TEXT,
+				  short_url TEXT,
+				  uuid INTEGER
+			  );
+			   `)
 		if err != nil {
-			return err
+			return fmt.Errorf("error creating table: %w", err)
+		}
+	} else {
+		defer rows.Close()
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("error checking table existence: %w", err)
 		}
 	}
-
 	d.DB = db
 	return nil
 }
