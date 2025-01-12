@@ -28,25 +28,27 @@ func (d *SQLStorage) Open() error {
 	defer cancel()
 
 	if err != nil {
-		return err
+		return fmt.Errorf("sql.Open error: %w", err)
 	}
 
 	if err := db.Ping(); err != nil {
-		return err
+		return fmt.Errorf("db.Ping error: %w", err)
 	}
 
 	rows, err := db.QueryContext(ctx, "SELECT 1 FROM information_schema.tables WHERE table_name = 'urls'")
 	if err != nil {
+		fmt.Printf("Error during check table existance: %v\n", err)
 		_, err = db.ExecContext(ctx, `
-			   CREATE TABLE urls (
-				  full_url TEXT,
-				  short_url TEXT,
-				  uuid INTEGER
-			  );
-			   `)
+            CREATE TABLE urls (
+               full_url TEXT,
+               short_url TEXT,
+               uuid INTEGER
+            );
+        `)
 		if err != nil {
 			return fmt.Errorf("error creating table: %w", err)
 		}
+		fmt.Println("Table urls created")
 	} else {
 		defer rows.Close()
 		if err := rows.Err(); err != nil {
