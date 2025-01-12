@@ -66,12 +66,11 @@ func (serv *Shorter) Ping() error {
 }
 
 func (serv *Shorter) BatchURLs(urls *[]repo.URL) (u *[]repo.URL, err error) {
-	urs := make([]*repo.URL, len(*urls))
-
-	for _, v := range *urls {
+	urs := make([]*repo.URL, 0, len(*urls))
+	for i, v := range *urls {
 		v.ShortURL = serv.generateUniqAdress()
 		println(v.FullURL, v.ShortURL, v.ID)
-		urs = append(urs, &v)
+		urs = append(urs, &(*urls)[i])
 	}
 
 	if er := serv.store.BatchURLS(urs); er != nil {

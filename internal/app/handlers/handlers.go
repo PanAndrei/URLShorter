@@ -105,7 +105,6 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 }
 
 func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
-	var request models.APIRequest
 	var requests []models.APIRequest
 
 	if err := json.NewDecoder(req.Body).Decode(&requests); err != nil {
@@ -113,14 +112,26 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	us := request.ToURLs(requests)
-	h.shorter.BatchURLs(&us)
+	us := make([]repo.URL, len(requests))
+
+	for i, r := range requests {
+		us[i] = repo.URL{
+			FullURL: r.URL,
+			ID:      r.ID,
+		}
+	}
+
+	urls := &us
+	_, err := h.shorter.BatchURLs(urls)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	var response models.APIResponse
 	data, err := json.Marshal(response.FromURLs(us, h.config.ReturnAdress))
-
 	if err != nil {
-		http.Error(res, "Body is empty", http.StatusBadRequest)
+		http.Error(res, "Marshal error", http.StatusBadRequest)
 		return
 	}
 
