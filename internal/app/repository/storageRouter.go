@@ -24,6 +24,7 @@ func (r *StorageRouter) GetStorage(config hadlCnfg.Config) (Repository, error) {
 			return nil, fmt.Errorf("opening db: %w", err)
 		}
 		return db, nil
+
 	}
 
 	if config.FileStorageAdress != "" {

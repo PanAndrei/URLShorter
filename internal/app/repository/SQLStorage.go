@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -23,10 +22,6 @@ func NewDB(cnfg string) *SQLStorage {
 
 func (d *SQLStorage) Open() error {
 	db, err := sql.Open("pgx", d.cnfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-	defer cancel()
-
 	if err != nil {
 		return fmt.Errorf("sql.Open error: %w", err)
 	}
@@ -34,11 +29,20 @@ func (d *SQLStorage) Open() error {
 	if err := db.Ping(); err != nil {
 		return fmt.Errorf("db.Ping error: %w", err)
 	}
+	d.DB = db
 
-	rows, err := db.QueryContext(ctx, "SELECT 1 FROM information_schema.tables WHERE table_name = 'urls'")
+	err = d.createTableIfNotExists(context.Background())
 	if err != nil {
-		fmt.Printf("Error during check table existance: %v\n", err)
-		_, err = db.ExecContext(ctx, `
+		return fmt.Errorf("createTableIfNotExists: %w", err)
+	}
+
+	return nil
+}
+func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
+	rows, err := d.DB.QueryContext(ctx, "SELECT 1 FROM information_schema.tables WHERE table_name = 'urls'")
+	if err != nil {
+		fmt.Printf("Error during check table existance: %v\n", err) // Выводим ошибку при проверке таблицы
+		_, err = d.DB.ExecContext(ctx, `
             CREATE TABLE urls (
                full_url TEXT,
                short_url TEXT,
@@ -46,27 +50,26 @@ func (d *SQLStorage) Open() error {
             );
         `)
 		if err != nil {
-			return fmt.Errorf("error creating table: %w", err)
+			return fmt.Errorf("error creating table: %w", err) // Возвращаем ошибку при создании таблицы
 		}
-		fmt.Println("Table urls created")
+		fmt.Println("Table urls created") // Добавили вывод об успешном создании таблицы
 	} else {
 		defer rows.Close()
 		if err := rows.Err(); err != nil {
 			return fmt.Errorf("error checking table existence: %w", err)
 		}
 	}
-	d.DB = db
 	return nil
 }
 
 func (d *SQLStorage) Close() {
-	d.DB.Close()
+	if d.DB != nil {
+		d.DB.Close()
+	}
 }
 
 func (d *SQLStorage) SaveURL(u *URL) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
+	ctx := context.Background()
 	_, err := d.DB.ExecContext(ctx,
 		"INSERT INTO urls (full_url, short_url, uuid) VALUES ($1, $2, $3)",
 		u.FullURL, u.ShortURL, u.UUID)
@@ -77,9 +80,7 @@ func (d *SQLStorage) SaveURL(u *URL) {
 }
 
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
+	ctx := context.Background()
 	var loadedURL URL
 	query := "SELECT full_url, short_url, uuid FROM urls WHERE full_url = $1 OR short_url = $2"
 	err = d.DB.QueryRowContext(ctx, query, u.FullURL, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL, &loadedURL.UUID)
@@ -89,13 +90,11 @@ func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 		}
 		return nil, fmt.Errorf("queryRowContext: %w", err)
 	}
-
 	return &loadedURL, nil
 }
 
 func (d *SQLStorage) IsUniqueShort(shortURL string) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx := context.Background()
 	var count int
 	query := "SELECT COUNT(*) FROM urls WHERE short_url = $1"
 	err := d.DB.QueryRowContext(ctx, query, shortURL).Scan(&count)

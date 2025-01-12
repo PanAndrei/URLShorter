@@ -23,9 +23,6 @@ var Cnfg = mainConfig{
 }
 
 func ParsFlags() {
-	// ps := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-	// 	DBhost, DBport, DBuser, DBpassword, DBdbname)
-
 	flag.StringVar(&Cnfg.Handlers.ServerAdress, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&Cnfg.Handlers.ReturnAdress, "b", "http://localhost:8080", "redirect adress")
 	flag.StringVar(&Cnfg.Handlers.FileStorageAdress, "f", "repository.json", "local file url's storage")
