@@ -5,13 +5,22 @@ import (
 )
 
 type APIRequest struct {
-	URL string `json:"url"` //`json:"original_url"`
-	ID  string `json:"correlation_id"`
+	URL      string `json:"url"`          //`json:"original_url"`
+	Original string `json:"original_url"` // !!
+	ID       string `json:"correlation_id"`
 }
 
 func (r *APIRequest) ToURL(req APIRequest) repo.URL {
+	url := ""
+
+	if req.Original != "" {
+		url = req.Original
+	} else {
+		url = req.URL
+	}
+
 	return repo.URL{
-		FullURL: req.URL,
+		FullURL: url,
 		ID:      req.ID,
 	}
 }
@@ -26,12 +35,14 @@ func (r *APIRequest) ToURLs(reqs []APIRequest) []repo.URL {
 
 type APIResponse struct {
 	Result string `json:"result"` //`json:"short_url"`
+	Short  string `json:"short_url"`
 	ID     string `json:"correlation_id"`
 }
 
 func (r *APIResponse) FromURL(rep repo.URL, host string) APIResponse {
 	return APIResponse{
 		Result: host + "/" + rep.ShortURL,
+		Short:  host + "/" + rep.ShortURL,
 		ID:     rep.ID,
 	}
 }
