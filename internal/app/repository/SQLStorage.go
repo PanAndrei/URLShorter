@@ -108,37 +108,24 @@ func (d *SQLStorage) Ping() error {
 }
 
 func (d *SQLStorage) BatchURLS(urls []*URL) error {
-	ctx := context.Background()
-	tx, err := d.DB.BeginTx(ctx, nil)
+	tx, err := d.DB.Begin()
 	if err != nil {
-		return fmt.Errorf("begin transaction error: %w", err)
+		return err
 	}
-	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			fmt.Printf("transaction rollback error: %v\n", err)
-		}
-	}()
+	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urls (full_url, short_url, id) VALUES ($1, $2, $3)")
+	stmt, err := tx.Prepare(
+		"INSERT INTO urls (full_url, short_url, id) VALUES ($1, $2, $3)")
 	if err != nil {
-		return fmt.Errorf("prepare statement error: %w", err)
+		return err
 	}
-	defer func() {
-		if err := stmt.Close(); err != nil {
-			fmt.Printf("statement close error: %v\n", err)
-		}
-	}()
+	defer stmt.Close()
 
 	for _, url := range urls {
-		_, err := stmt.ExecContext(ctx, url.FullURL, url.ShortURL, url.ID)
+		_, err := stmt.Exec(url.FullURL, url.ShortURL, url.ID)
 		if err != nil {
-			return fmt.Errorf("statement exec context error: %w", err)
+			return err
 		}
 	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("commit transaction error: %w", err)
-	}
-	return nil
+	return tx.Commit()
 }

@@ -54,17 +54,9 @@ func (serv *Shorter) GetFullURL(url *repo.URL) (u *repo.URL, err error) {
 func (serv *Shorter) generateUniqAdress() string {
 	b := make([]byte, adressLenght)
 
-	// for {
 	for i := range b {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
-
-	// if !serv.store.IsUniqueShort(string(b)) {
-	// 	b = make([]byte, adressLenght)
-	// } else {
-	// 	break
-	// }
-	// }
 
 	return string(b)
 }
@@ -78,6 +70,7 @@ func (serv *Shorter) BatchURLs(urls *[]repo.URL) (u *[]repo.URL, err error) {
 
 	for _, v := range *urls {
 		v.ShortURL = serv.generateUniqAdress()
+		println(v.FullURL, v.ShortURL, v.ID)
 		urs = append(urs, &v)
 	}
 
