@@ -57,11 +57,11 @@ func (d *SQLStorage) Close() {
 	d.DB.Close()
 }
 
-func (s *SQLStorage) SaveURL(u *URL) {
+func (d *SQLStorage) SaveURL(u *URL) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := s.DB.ExecContext(ctx,
+	_, err := d.DB.ExecContext(ctx,
 		"INSERT INTO urls (full_url, short_url, uuid) VALUES ($1, $2, $3)",
 		u.FullURL, u.ShortURL, u.UUID)
 
@@ -70,13 +70,13 @@ func (s *SQLStorage) SaveURL(u *URL) {
 	}
 }
 
-func (s *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
+func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	var loadedURL URL
 	query := "SELECT full_url, short_url, uuid FROM urls WHERE full_url = $1 OR short_url = $2"
-	err = s.DB.QueryRowContext(ctx, query, u.FullURL, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL, &loadedURL.UUID)
+	err = d.DB.QueryRowContext(ctx, query, u.FullURL, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL, &loadedURL.UUID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, newErrURLNotFound()
@@ -87,12 +87,12 @@ func (s *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	return &loadedURL, nil
 }
 
-func (s *SQLStorage) IsUniqueShort(shortURL string) bool {
+func (d *SQLStorage) IsUniqueShort(shortURL string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var count int
 	query := "SELECT COUNT(*) FROM urls WHERE short_url = $1"
-	err := s.DB.QueryRowContext(ctx, query, shortURL).Scan(&count)
+	err := d.DB.QueryRowContext(ctx, query, shortURL).Scan(&count)
 	if err != nil {
 		return false
 	}
