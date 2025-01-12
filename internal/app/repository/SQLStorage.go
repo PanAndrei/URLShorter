@@ -15,61 +15,44 @@ type SQLStorage struct {
 }
 
 func NewDB(cnfg string) *SQLStorage {
+	db, err := sql.Open("pgx", cnfg)
+	if err != nil {
+		fmt.Printf("sql.Open error: %v\n", err)
+		return nil
+	}
+
+	if err := db.Ping(); err != nil {
+		fmt.Printf("db.Ping error: %v\n", err)
+		return nil
+	}
+
 	return &SQLStorage{
+		DB:   db,
 		cnfg: cnfg,
 	}
 }
 
-func (d *SQLStorage) Open() error {
-	db, err := sql.Open("pgx", d.cnfg)
-	if err != nil {
-		return fmt.Errorf("sql.Open error: %w", err)
-	}
-
-	if err := db.Ping(); err != nil {
-		return fmt.Errorf("db.Ping error: %w", err)
-	}
-	d.DB = db
-
-	err = d.createTableIfNotExists(context.Background())
-	if err != nil {
-		return fmt.Errorf("createTableIfNotExists: %w", err)
-	}
-
-	return nil
-}
 func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
-	rows, err := d.DB.QueryContext(ctx, "SELECT 1 FROM information_schema.tables WHERE table_name = 'urls'")
+	_, err := d.DB.ExecContext(ctx, `
+        CREATE TABLE IF NOT EXISTS urls (
+           full_url TEXT,
+           short_url TEXT,
+           uuid INTEGER
+        );
+    `)
 	if err != nil {
-		fmt.Printf("Error during check table existance: %v\n", err) // Выводим ошибку при проверке таблицы
-		_, err = d.DB.ExecContext(ctx, `
-            CREATE TABLE urls (
-               full_url TEXT,
-               short_url TEXT,
-               uuid INTEGER
-            );
-        `)
-		if err != nil {
-			return fmt.Errorf("error creating table: %w", err) // Возвращаем ошибку при создании таблицы
-		}
-		fmt.Println("Table urls created") // Добавили вывод об успешном создании таблицы
-	} else {
-		defer rows.Close()
-		if err := rows.Err(); err != nil {
-			return fmt.Errorf("error checking table existence: %w", err)
-		}
+		return fmt.Errorf("error creating table: %w", err)
 	}
 	return nil
-}
-
-func (d *SQLStorage) Close() {
-	if d.DB != nil {
-		d.DB.Close()
-	}
 }
 
 func (d *SQLStorage) SaveURL(u *URL) {
 	ctx := context.Background()
+	if err := d.createTableIfNotExists(ctx); err != nil {
+		fmt.Printf("createTableIfNotExists error: %v\n", err)
+		return
+	}
+
 	_, err := d.DB.ExecContext(ctx,
 		"INSERT INTO urls (full_url, short_url, uuid) VALUES ($1, $2, $3)",
 		u.FullURL, u.ShortURL, u.UUID)
@@ -81,6 +64,10 @@ func (d *SQLStorage) SaveURL(u *URL) {
 
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	ctx := context.Background()
+	if err := d.createTableIfNotExists(ctx); err != nil {
+		return nil, fmt.Errorf("createTableIfNotExists error: %w", err)
+	}
+
 	var loadedURL URL
 	query := "SELECT full_url, short_url, uuid FROM urls WHERE full_url = $1 OR short_url = $2"
 	err = d.DB.QueryRowContext(ctx, query, u.FullURL, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL, &loadedURL.UUID)
@@ -95,6 +82,10 @@ func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 
 func (d *SQLStorage) IsUniqueShort(shortURL string) bool {
 	ctx := context.Background()
+	if err := d.createTableIfNotExists(ctx); err != nil {
+		fmt.Printf("createTableIfNotExists error: %v\n", err)
+		return false
+	}
 	var count int
 	query := "SELECT COUNT(*) FROM urls WHERE short_url = $1"
 	err := d.DB.QueryRowContext(ctx, query, shortURL).Scan(&count)
@@ -102,4 +93,23 @@ func (d *SQLStorage) IsUniqueShort(shortURL string) bool {
 		return false
 	}
 	return count == 0
+}
+
+func (d *SQLStorage) Open() error {
+
+	db, err := sql.Open("pgx", d.cnfg)
+	if err != nil {
+		return err
+	}
+
+	if err := db.Ping(); err != nil {
+		return err
+	}
+
+	d.DB = db
+	return nil
+}
+
+func (d *SQLStorage) Close() {
+	d.DB.Close()
 }

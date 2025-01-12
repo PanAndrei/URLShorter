@@ -143,4 +143,5 @@ func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) { // те�
 	}
 
 	res.WriteHeader(http.StatusOK)
+	h.db.Close()
 }

@@ -2,7 +2,6 @@ package repository
 
 import (
 	hadlCnfg "URLShorter/internal/app/handlers/config"
-	"fmt"
 )
 
 type Repository interface {
@@ -20,11 +19,7 @@ func NewStorageRouter() *StorageRouter {
 func (r *StorageRouter) GetStorage(config hadlCnfg.Config) (Repository, error) {
 	if config.PostgreSQLAdress != "" {
 		db := NewDB(config.PostgreSQLAdress)
-		if err := db.Open(); err != nil {
-			return nil, fmt.Errorf("opening db: %w", err)
-		}
 		return db, nil
-
 	}
 
 	if config.FileStorageAdress != "" {
