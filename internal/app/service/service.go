@@ -54,17 +54,17 @@ func (serv *Shorter) GetFullURL(url *repo.URL) (u *repo.URL, err error) {
 func (serv *Shorter) generateUniqAdress() string {
 	b := make([]byte, adressLenght)
 
-	for {
-		for i := range b {
-			b[i] = charset[rand.Intn(len(charset))]
-		}
-
-		if !serv.store.IsUniqueShort(string(b)) {
-			b = make([]byte, adressLenght)
-		} else {
-			break
-		}
+	// for {
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
 	}
+
+	// if !serv.store.IsUniqueShort(string(b)) {
+	// 	b = make([]byte, adressLenght)
+	// } else {
+	// 	break
+	// }
+	// }
 
 	return string(b)
 }
