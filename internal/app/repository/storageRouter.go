@@ -9,6 +9,7 @@ type Repository interface {
 	LoadURL(u *URL) (r *URL, err error)
 	IsUniqueShort(s string) bool
 	Ping() error
+	BatchURLS(urls []*URL) error
 }
 
 type StorageRouter struct{}
