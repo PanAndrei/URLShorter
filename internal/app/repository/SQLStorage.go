@@ -27,10 +27,20 @@ func NewDB(cnfg string) *SQLStorage {
 		return nil
 	}
 
-	return &SQLStorage{
+	storage := &SQLStorage{
 		DB:   db,
 		cnfg: cnfg,
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := storage.createTableIfNotExists(ctx); err != nil {
+		fmt.Printf("createTableIfNotExists error: %v\n", err)
+		return nil
+	}
+
+	return storage
 }
 
 func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
@@ -47,12 +57,14 @@ func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
 	return nil
 }
 
+func (d *SQLStorage) Close() {
+	if d.DB != nil {
+		d.DB.Close()
+	}
+}
+
 func (d *SQLStorage) SaveURL(u *URL) {
 	ctx := context.Background()
-	if err := d.createTableIfNotExists(ctx); err != nil {
-		fmt.Printf("createTableIfNotExists error: %v\n", err)
-		return
-	}
 
 	_, err := d.DB.ExecContext(ctx,
 		"INSERT INTO urls (full_url, short_url, uuid) VALUES ($1, $2, $3)",
@@ -65,10 +77,6 @@ func (d *SQLStorage) SaveURL(u *URL) {
 
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	ctx := context.Background()
-	if err := d.createTableIfNotExists(ctx); err != nil {
-		return nil, fmt.Errorf("createTableIfNotExists error: %w", err)
-	}
-
 	var loadedURL URL
 	query := "SELECT full_url, short_url, uuid FROM urls WHERE full_url = $1 OR short_url = $2"
 	err = d.DB.QueryRowContext(ctx, query, u.FullURL, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL, &loadedURL.UUID)
@@ -83,10 +91,6 @@ func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 
 func (d *SQLStorage) IsUniqueShort(shortURL string) bool {
 	ctx := context.Background()
-	if err := d.createTableIfNotExists(ctx); err != nil {
-		fmt.Printf("createTableIfNotExists error: %v\n", err)
-		return false
-	}
 	var count int
 	query := "SELECT COUNT(*) FROM urls WHERE short_url = $1"
 	err := d.DB.QueryRowContext(ctx, query, shortURL).Scan(&count)
@@ -94,25 +98,6 @@ func (d *SQLStorage) IsUniqueShort(shortURL string) bool {
 		return false
 	}
 	return count == 0
-}
-
-func (d *SQLStorage) Open() error {
-
-	db, err := sql.Open("pgx", d.cnfg)
-	if err != nil {
-		return err
-	}
-
-	if err := db.Ping(); err != nil {
-		return err
-	}
-
-	d.DB = db
-	return nil
-}
-
-func (d *SQLStorage) Close() {
-	d.DB.Close()
 }
 
 func (d *SQLStorage) Ping() error {
