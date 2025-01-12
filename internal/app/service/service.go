@@ -8,13 +8,14 @@ import (
 
 const (
 	adressLenght = 8
-	charset      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" // как бы тут через range и askii покрасивее
+	charset      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
 type Short interface {
 	SetShortURL(url *repo.URL) (u *repo.URL)
 	GetFullURL(url *repo.URL) (u *repo.URL, err error)
 	Ping() error
+	BatchURLs(urls *[]repo.URL) (u *[]repo.URL, err error)
 }
 
 type Shorter struct {
@@ -70,4 +71,19 @@ func (serv *Shorter) generateUniqAdress() string {
 
 func (serv *Shorter) Ping() error {
 	return serv.store.Ping()
+}
+
+func (serv *Shorter) BatchURLs(urls *[]repo.URL) (u *[]repo.URL, err error) {
+	urs := make([]*repo.URL, len(*urls))
+
+	for _, v := range *urls {
+		v.ShortURL = serv.generateUniqAdress()
+		urs = append(urs, &v)
+	}
+
+	if er := serv.store.BatchURLS(urs); er != nil {
+		return nil, er
+	}
+
+	return urls, nil
 }

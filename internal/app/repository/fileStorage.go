@@ -34,7 +34,7 @@ func (store *FileStore) SaveURL(u *URL) {
 	defer file.Close()
 
 	fileInfo, _ := file.Stat()
-	u.UUID = int(fileInfo.Size()) // заглушка что бы UUID не генерить или не читать сколько строк в фале
+	u.UUID = int(fileInfo.Size())
 	encoder := json.NewEncoder(file)
 	encoder.Encode(u)
 }
@@ -83,5 +83,13 @@ func (store *FileStore) IsUniqueShort(s string) bool {
 }
 
 func (store *FileStore) Ping() error {
+	return nil
+}
+
+func (store *FileStore) BatchURLS(urls []*URL) error {
+	for _, u := range urls {
+		store.SaveURL(u)
+	}
+
 	return nil
 }

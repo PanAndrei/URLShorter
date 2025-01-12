@@ -25,6 +25,7 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 
 	r.Post("/", h.mainPostHandler)
 	r.Post("/api/shorten", h.apiShortenHandler)
+	r.Post("/api/shorten/batch", h.batchHandler)
 	r.Get("/{i}", h.mainGetHandler)
 	r.Get("/ping", h.pingDB)
 
@@ -92,6 +93,31 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 
 	var response models.APIResponse
 	data, err := json.Marshal(response.FromURL(u, h.config.ReturnAdress))
+
+	if err != nil {
+		http.Error(res, "Body is empty", http.StatusBadRequest)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	res.Write(data)
+}
+
+func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
+	var request models.APIRequest
+	var requests []models.APIRequest
+
+	if err := json.NewDecoder(req.Body).Decode(&requests); err != nil {
+		http.Error(res, "Body is empty", http.StatusBadRequest)
+		return
+	}
+
+	us := request.ToURLs(requests)
+	h.shorter.BatchURLs(&us)
+
+	var response models.APIResponse
+	data, err := json.Marshal(response.FromURLs(us, h.config.ReturnAdress))
 
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)

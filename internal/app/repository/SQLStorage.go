@@ -48,7 +48,7 @@ func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
         CREATE TABLE IF NOT EXISTS urls (
            full_url TEXT,
            short_url TEXT,
-           uuid INTEGER
+           id TEXT
         );
     `)
 	if err != nil {
@@ -67,8 +67,8 @@ func (d *SQLStorage) SaveURL(u *URL) {
 	ctx := context.Background()
 
 	_, err := d.DB.ExecContext(ctx,
-		"INSERT INTO urls (full_url, short_url, uuid) VALUES ($1, $2, $3)",
-		u.FullURL, u.ShortURL, u.UUID)
+		"INSERT INTO urls (full_url, short_url, id) VALUES ($1, $2, $3)",
+		u.FullURL, u.ShortURL, u.ID)
 
 	if err != nil {
 		fmt.Printf("Error saving URL: %v\n", err)
@@ -78,8 +78,8 @@ func (d *SQLStorage) SaveURL(u *URL) {
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	ctx := context.Background()
 	var loadedURL URL
-	query := "SELECT full_url, short_url, uuid FROM urls WHERE full_url = $1 OR short_url = $2"
-	err = d.DB.QueryRowContext(ctx, query, u.FullURL, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL, &loadedURL.UUID)
+	query := "SELECT full_url, short_url, id FROM urls WHERE full_url = $1 OR short_url = $2"
+	err = d.DB.QueryRowContext(ctx, query, u.FullURL, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL, &loadedURL.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, newErrURLNotFound()
@@ -105,4 +105,40 @@ func (d *SQLStorage) Ping() error {
 	defer cancel()
 
 	return d.DB.PingContext(ctx)
+}
+
+func (d *SQLStorage) BatchURLS(urls []*URL) error {
+	ctx := context.Background()
+	tx, err := d.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin transaction error: %w", err)
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			fmt.Printf("transaction rollback error: %v\n", err)
+		}
+	}()
+
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urls (full_url, short_url, id) VALUES ($1, $2, $3)")
+	if err != nil {
+		return fmt.Errorf("prepare statement error: %w", err)
+	}
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			fmt.Printf("statement close error: %v\n", err)
+		}
+	}()
+
+	for _, url := range urls {
+		_, err := stmt.ExecContext(ctx, url.FullURL, url.ShortURL, url.ID)
+		if err != nil {
+			return fmt.Errorf("statement exec context error: %w", err)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("commit transaction error: %w", err)
+	}
+	return nil
 }

@@ -20,6 +20,7 @@ func NewStore() *Store {
 type URL struct {
 	FullURL  string `json:"originalUrl"`
 	ShortURL string `json:"shortUrl"`
+	ID       string `json:"id"`
 	UUID     int    `json:"uuid"`
 }
 
@@ -85,5 +86,13 @@ func (store *Store) loadByShortURL(u *URL) (r *URL, err error) {
 }
 
 func (store *Store) Ping() error {
+	return nil
+}
+
+func (store *Store) BatchURLS(urls []*URL) error {
+	for _, u := range urls {
+		store.SaveURL(u)
+	}
+
 	return nil
 }

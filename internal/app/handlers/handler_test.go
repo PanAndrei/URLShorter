@@ -33,6 +33,10 @@ func (m *MockShortener) Ping() error {
 	return nil
 }
 
+func (m *MockShortener) BatchURLs(urls *[]repo.URL) (u *[]repo.URL, err error) {
+	return nil, nil
+}
+
 func TestMainPostHandler(t *testing.T) {
 	h := NewHandlers(&MockShortener{}, cnfg.Config{})
 
