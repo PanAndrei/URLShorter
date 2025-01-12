@@ -5,7 +5,7 @@ import (
 )
 
 type APIRequest struct {
-	URL string `json:"original_url"`
+	URL string `json:"url"` //`json:"original_url"`
 	ID  string `json:"correlation_id"`
 }
 
@@ -25,7 +25,7 @@ func (r *APIRequest) ToURLs(reqs []APIRequest) []repo.URL {
 }
 
 type APIResponse struct {
-	Result string `json:"short_url"`
+	Result string `json:"result"` //`json:"short_url"`
 	ID     string `json:"correlation_id"`
 }
 
