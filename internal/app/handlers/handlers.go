@@ -122,19 +122,20 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	urls := make([]repo.URL, len(requests))
-	_, err := h.shorter.BatchURLs(&urls)
+	urls := &us
+	_, err := h.shorter.BatchURLs(urls)
+
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	for _, v := range urls {
+	for _, v := range *urls {
 		println("gg", v.FullURL, v.ShortURL, v.ID)
 	}
 
 	var response models.APIResponse
-	data, err := json.Marshal(response.FromURLs(urls, h.config.ReturnAdress))
+	data, err := json.Marshal(response.FromURLs(*urls, h.config.ReturnAdress))
 	if err != nil {
 		http.Error(res, "Marshal error", http.StatusBadRequest)
 		return
