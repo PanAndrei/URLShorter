@@ -23,11 +23,11 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	r.Use(gzp.WithGzipCompression)
 	r.Use(gzp.WithGzipDecompression)
 
-	r.Post("/", h.mainPostHandler)
-	r.Post("/api/shorten", h.apiShortenHandler)
 	r.Post("/api/shorten/batch", h.batchHandler)
-	r.Get("/{i}", h.mainGetHandler)
+	r.Post("/api/shorten", h.apiShortenHandler)
+	r.Post("/", h.mainPostHandler)
 	r.Get("/ping", h.pingDB)
+	r.Get("/{i}", h.mainGetHandler)
 
 	srv := &http.Server{
 		Addr:    cnf.ServerAdress,
