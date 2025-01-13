@@ -130,7 +130,7 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var response models.APIResponse
-	data, err := json.Marshal(response.FromURLs(us, h.config.ReturnAdress))
+	data, err := json.Marshal(response.FromURLs(*urls, h.config.ReturnAdress))
 	if err != nil {
 		http.Error(res, "Marshal error", http.StatusBadRequest)
 		return
