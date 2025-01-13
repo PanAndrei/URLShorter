@@ -13,7 +13,7 @@ type APIRequest struct {
 func (r *APIRequest) ToURL(req APIRequest) repo.URL {
 	url := ""
 
-	if req.Original != "" {
+	if req.Original != "" && req.Original != "null" {
 		url = req.Original
 	} else {
 		url = req.URL
