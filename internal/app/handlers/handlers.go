@@ -115,6 +115,8 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	us := make([]repo.URL, len(requests))
 
 	for i, r := range requests {
+		println("pr", r.URL, r.ID)
+
 		us[i] = repo.URL{
 			FullURL: r.URL,
 			ID:      r.ID,
