@@ -24,11 +24,11 @@ func NewFileStore(fileName string) (*FileStore, error) {
 	}, nil
 }
 
-func (store *FileStore) SaveURL(u *URL) (string, error) {
+func (store *FileStore) SaveURL(u *URL) error {
 	file, err := os.OpenFile(store.fileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	defer file.Close()
@@ -38,7 +38,7 @@ func (store *FileStore) SaveURL(u *URL) (string, error) {
 	encoder := json.NewEncoder(file)
 	encoder.Encode(u)
 
-	return u.ShortURL, nil
+	return nil
 }
 
 func (store *FileStore) LoadURL(u *URL) (r *URL, err error) {
@@ -76,13 +76,6 @@ func (store *FileStore) LoadURL(u *URL) (r *URL, err error) {
 
 	return nil, newErrURLNotFound()
 }
-
-// func (store *FileStore) IsUniqueShort(s string) bool {
-// 	u := URL{ShortURL: s}
-// 	_, err := store.LoadURL(&u)
-
-// 	return err != nil
-// }
 
 func (store *FileStore) Ping() error {
 	return nil

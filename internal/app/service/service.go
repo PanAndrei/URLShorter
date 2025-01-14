@@ -29,16 +29,37 @@ func NewShorter(store repo.Repository) *Shorter {
 }
 
 func (serv *Shorter) SetShortURL(url *repo.URL) (u *repo.URL, err error) {
-	newU, err := serv.store.LoadURL(url)
+	er := serv.store.SaveURL(url)
 
-	if err != nil {
-		short := serv.generateUniqAdress()
-		url.ShortURL = short
-		serv.store.SaveURL(url)
-		return url, err
+	if er != nil {
+		newU, e := serv.store.LoadURL(url)
+
+		if e != nil {
+			return nil, e
+		}
+
+		return newU, er
 	}
 
-	return newU, nil
+	return url, nil
+
+	// newU, err := serv.store.LoadURL(url)
+	// ur := repo.URL{}
+	// ur.FullURL = url.FullURL
+
+	// if err != nil {
+	// 	short := serv.generateUniqAdress()
+	// 	url.ShortURL = short
+	// 	e := serv.store.SaveURL(url)
+
+	// 	if e != nil {
+	// 		return &ur, e
+	// 	}
+
+	// 	return url, err
+	// }
+
+	// return newU, nil
 }
 
 func (serv *Shorter) GetFullURL(url *repo.URL) (u *repo.URL, err error) {
