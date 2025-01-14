@@ -45,15 +45,15 @@ func (store *Store) LoadURL(u *URL) (r *URL, err error) {
 	store.mux.Lock()
 	defer store.mux.Unlock()
 
-	return store.loadByFullURL(u)
+	return store.loadByShortURL(u)
 }
 
-func (store *Store) loadByFullURL(u *URL) (r *URL, err error) {
-	for k, v := range store.s {
-		if v == u.FullURL {
-			u.ShortURL = k
-			return u, nil
-		}
+func (store *Store) loadByShortURL(u *URL) (r *URL, err error) {
+	k, ok := store.s[u.ShortURL]
+
+	if ok {
+		u.FullURL = k
+		return u, nil
 	}
 
 	return nil, newErrURLNotFound()

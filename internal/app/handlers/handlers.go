@@ -162,7 +162,7 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 	u := repo.URL{
 		ShortURL: iStr,
 	}
-
+	println("gggg1", iStr)
 	url, err := h.shorter.GetFullURL(&u)
 
 	if err != nil {

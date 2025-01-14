@@ -48,7 +48,7 @@ func (serv *Shorter) SetShortURL(url *repo.URL) (u *repo.URL, err error) {
 
 func (serv *Shorter) GetFullURL(url *repo.URL) (u *repo.URL, err error) {
 	newU, err := serv.store.LoadURL(url)
-
+	println("gggg2", newU.FullURL, newU.ShortURL)
 	if err != nil {
 		return nil, err
 	}
