@@ -82,7 +82,6 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.Header().Set("Content-Type", "text/plain")
-	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte(h.config.ReturnAdress + "/" + short.ShortURL))
 }
 
