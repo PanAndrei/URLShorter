@@ -55,12 +55,12 @@ func NewDB(cnfg string) *SQLStorage {
 
 func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
 	_, err := d.DB.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS urls (
-			full_url TEXT UNIQUE,
-			short_url TEXT,
-			id_str TEXT
-		);
-	`)
+        CREATE TABLE IF NOT EXISTS urls (
+           full_url TEXT,
+           short_url TEXT,
+           id TEXT
+        );
+    `)
 	if err != nil {
 		return fmt.Errorf("error creating table: %w", err)
 	}
