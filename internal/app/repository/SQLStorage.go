@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -54,7 +56,7 @@ func NewDB(cnfg string) *SQLStorage {
 func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
 	_, err := d.DB.ExecContext(ctx, `
         CREATE TABLE IF NOT EXISTS urls (
-           full_url TEXT,
+           full_url TEXT UNIQUE,
            short_url TEXT,
            id TEXT
         );
@@ -74,45 +76,20 @@ func (d *SQLStorage) Close() {
 func (d *SQLStorage) SaveURL(u *URL) error {
 	ctx := context.Background()
 
-	_, err := d.DB.ExecContext(ctx,
+	if _, err := d.DB.ExecContext(ctx,
 		"INSERT INTO urls (full_url, short_url, id) VALUES ($1, $2, $3)",
-		u.FullURL, u.ShortURL, u.ID)
-
-	if err != nil {
-		fmt.Printf("Error saving URL: %v\n", err)
+		u.FullURL, u.ShortURL, u.ID); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				err = newErrURLAlreadyExists()
+			}
+		}
+		return err
 	}
 
 	return nil
 }
-
-// func (d *SQLStorage) SaveURL(u *URL) error {
-// 	ctx := context.Background()
-// 	if err := d.createTableIfNotExists(ctx); err != nil {
-// 		return err
-// 	}
-// 	var existingURL URL
-// 	err := d.DB.QueryRowContext(ctx,
-// 		`INSERT INTO urls (full_url, short_url, id)
-// 		 VALUES ($1, $2, $3)
-// 		 ON CONFLICT (full_url) DO UPDATE SET id = $3
-// 		 RETURNING full_url, short_url, id`,
-// 		u.FullURL, u.ShortURL, u.ID,
-// 	).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
-
-// 	if err != nil {
-// 		var pgErr *pgconn.PgError
-// 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-// 			err = d.DB.QueryRowContext(ctx, "SELECT full_url, short_url, id FROM urls WHERE full_url = $1", u.FullURL).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			return ErrURLAlreadyExists
-// 		}
-// 		return err
-// 	}
-
-// 	return nil
-// }
 
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	ctx := context.Background()
