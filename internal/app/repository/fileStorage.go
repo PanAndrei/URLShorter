@@ -24,11 +24,11 @@ func NewFileStore(fileName string) (*FileStore, error) {
 	}, nil
 }
 
-func (store *FileStore) SaveURL(u *URL) error {
+func (store *FileStore) SaveURL(u *URL) (*URL, error) {
 	file, err := os.OpenFile(store.fileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer file.Close()
@@ -38,7 +38,7 @@ func (store *FileStore) SaveURL(u *URL) error {
 	encoder := json.NewEncoder(file)
 	encoder.Encode(u)
 
-	return nil
+	return nil, nil
 }
 
 func (store *FileStore) LoadURL(u *URL) (r *URL, err error) {

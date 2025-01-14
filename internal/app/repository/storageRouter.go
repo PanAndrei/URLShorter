@@ -5,7 +5,7 @@ import (
 )
 
 type Repository interface {
-	SaveURL(u *URL) error
+	SaveURL(u *URL) (*URL, error)
 	LoadURL(u *URL) (r *URL, err error)
 	Ping() error
 	BatchURLS(urls []*URL) error

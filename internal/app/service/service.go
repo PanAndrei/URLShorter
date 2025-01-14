@@ -32,7 +32,7 @@ func NewShorter(store repo.Repository) *Shorter {
 func (serv *Shorter) SetShortURL(url *repo.URL) (u *repo.URL, err error) {
 	short := serv.generateUniqAdress()
 	url.ShortURL = short
-	e := serv.store.SaveURL(url)
+	_, e := serv.store.SaveURL(url)
 
 	if e != nil {
 		if errors.Is(e, repo.ErrURLAlreadyExists) {

@@ -32,13 +32,13 @@ func newErrURLNotFound() error {
 	return ErrURLNotFound
 }
 
-func (store *Store) SaveURL(u *URL) error {
+func (store *Store) SaveURL(u *URL) (*URL, error) {
 	store.mux.Lock()
 	defer store.mux.Unlock()
 
 	store.s[u.ShortURL] = u.FullURL
 
-	return nil
+	return nil, nil
 }
 
 func (store *Store) LoadURL(u *URL) (r *URL, err error) {
