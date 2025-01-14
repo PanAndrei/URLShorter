@@ -62,12 +62,12 @@ func TestMainPostHandler(t *testing.T) {
 			set: set{
 				method:      http.MethodPost,
 				path:        "/",
-				contentType: "text/plain",
+				contentType: "",
 			},
 			want: want{
 				responseCode: http.StatusCreated,
 				request:      "",
-				contentType:  "text/plain",
+				contentType:  "",
 			},
 		},
 		{
@@ -75,12 +75,12 @@ func TestMainPostHandler(t *testing.T) {
 			set: set{
 				method:      http.MethodGet,
 				path:        "/",
-				contentType: "text/plain",
+				contentType: "",
 			},
 			want: want{
 				responseCode: http.StatusBadRequest,
 				request:      "",
-				contentType:  "text/plain",
+				contentType:  "",
 			},
 		},
 	}
