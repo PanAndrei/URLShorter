@@ -5,9 +5,9 @@ import (
 )
 
 type Repository interface {
-	SaveURL(u *URL)
+	SaveURL(u *URL) (string, error)
 	LoadURL(u *URL) (r *URL, err error)
-	IsUniqueShort(s string) bool
+	// IsUniqueShort(s string) bool
 	Ping() error
 	BatchURLS(urls []*URL) error
 }

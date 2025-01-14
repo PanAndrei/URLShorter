@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -73,11 +74,20 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 		FullURL: receivedURL,
 	}
 
-	short := h.shorter.SetShortURL(&u).ShortURL
+	sh, err := h.shorter.SetShortURL(&u)
+
+	if err != nil {
+		if errors.Is(err, repo.ErrURLAlreadyExists) {
+			res.Header().Set("Content-Type", "text/plain")
+			res.WriteHeader(http.StatusConflict)
+			res.Write([]byte(h.config.ReturnAdress + "/" + sh.ShortURL))
+			return
+		}
+	}
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(h.config.ReturnAdress + "/" + short))
+	res.Write([]byte(h.config.ReturnAdress + "/" + sh.ShortURL))
 }
 
 func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request) {
@@ -89,10 +99,10 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 	}
 
 	u := request.ToURL(request)
-	h.shorter.SetShortURL(&u)
+	url, error := h.shorter.SetShortURL(&u)
 
 	var response models.APIResponse
-	data, err := json.Marshal(response.FromURL(u, h.config.ReturnAdress))
+	data, err := json.Marshal(response.FromURL(*url, h.config.ReturnAdress))
 
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
@@ -100,7 +110,12 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 	}
 
 	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusCreated)
+	if errors.Is(error, repo.ErrURLAlreadyExists) {
+		res.WriteHeader(http.StatusConflict)
+	} else {
+		res.WriteHeader(http.StatusCreated)
+	}
+
 	res.Write(data)
 }
 
@@ -128,10 +143,6 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
-	}
-
-	for _, v := range *u {
-		println("gg", v.FullURL, v.ShortURL, v.ID)
 	}
 
 	var response models.APIResponse
