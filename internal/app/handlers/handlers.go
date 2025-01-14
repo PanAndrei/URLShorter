@@ -73,11 +73,17 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 		FullURL: receivedURL,
 	}
 
-	short := h.shorter.SetShortURL(&u).ShortURL
+	short, err := h.shorter.SetShortURL(&u)
+
+	if err != nil {
+		res.WriteHeader(http.StatusConflict)
+	} else {
+		res.WriteHeader(http.StatusCreated)
+	}
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(h.config.ReturnAdress + "/" + short))
+	res.Write([]byte(h.config.ReturnAdress + "/" + short.ShortURL))
 }
 
 func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request) {
@@ -89,10 +95,10 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 	}
 
 	u := request.ToURL(request)
-	h.shorter.SetShortURL(&u)
+	url, e := h.shorter.SetShortURL(&u)
 
 	var response models.APIResponse
-	data, err := json.Marshal(response.FromURL(u, h.config.ReturnAdress))
+	data, err := json.Marshal(response.FromURL(*url, h.config.ReturnAdress))
 
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
@@ -100,7 +106,11 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 	}
 
 	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusCreated)
+	if e != nil {
+		res.WriteHeader(http.StatusConflict)
+	} else {
+		res.WriteHeader(http.StatusCreated)
+	}
 	res.Write(data)
 }
 

@@ -7,8 +7,18 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+var (
+	ErrURLAlreadyExists = errors.New("url already exists")
+)
+
+func newErrURLAlreadyExists() error {
+	return ErrURLNotFound
+}
 
 type SQLStorage struct {
 	DB   *sql.DB
@@ -63,16 +73,33 @@ func (d *SQLStorage) Close() {
 	}
 }
 
-func (d *SQLStorage) SaveURL(u *URL) {
+func (d *SQLStorage) SaveURL(u *URL) error {
 	ctx := context.Background()
-
-	_, err := d.DB.ExecContext(ctx,
-		"INSERT INTO urls (full_url, short_url, id) VALUES ($1, $2, $3)",
-		u.FullURL, u.ShortURL, u.ID)
+	if err := d.createTableIfNotExists(ctx); err != nil {
+		return err
+	}
+	var existingURL URL
+	err := d.DB.QueryRowContext(ctx,
+		`INSERT INTO urls (full_url, short_url, id) 
+		 VALUES ($1, $2, $3)
+		 ON CONFLICT (full_url) DO UPDATE SET id = $3
+		 RETURNING full_url, short_url, id`,
+		u.FullURL, u.ShortURL, u.ID,
+	).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
 
 	if err != nil {
-		fmt.Printf("Error saving URL: %v\n", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			err = d.DB.QueryRowContext(ctx, "SELECT full_url, short_url, id FROM urls WHERE full_url = $1", u.FullURL).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
+			if err != nil {
+				return err
+			}
+			return ErrURLAlreadyExists
+		}
+		return err
 	}
+
+	return nil
 }
 
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
@@ -87,17 +114,6 @@ func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 		return nil, fmt.Errorf("queryRowContext: %w", err)
 	}
 	return &loadedURL, nil
-}
-
-func (d *SQLStorage) IsUniqueShort(shortURL string) bool {
-	ctx := context.Background()
-	var count int
-	query := "SELECT COUNT(*) FROM urls WHERE short_url = $1"
-	err := d.DB.QueryRowContext(ctx, query, shortURL).Scan(&count)
-	if err != nil {
-		return false
-	}
-	return count == 0
 }
 
 func (d *SQLStorage) Ping() error {

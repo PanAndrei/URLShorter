@@ -12,7 +12,7 @@ const (
 )
 
 type Short interface {
-	SetShortURL(url *repo.URL) (u *repo.URL)
+	SetShortURL(url *repo.URL) (u *repo.URL, err error)
 	GetFullURL(url *repo.URL) (u *repo.URL, err error)
 	Ping() error
 	BatchURLs(urls *[]repo.URL) (u *[]repo.URL, err error)
@@ -28,17 +28,22 @@ func NewShorter(store repo.Repository) *Shorter {
 	}
 }
 
-func (serv *Shorter) SetShortURL(url *repo.URL) (u *repo.URL) {
-	newU, err := serv.store.LoadURL(url)
+func (serv *Shorter) SetShortURL(url *repo.URL) (u *repo.URL, err error) {
+	short := serv.generateUniqAdress()
+	url.ShortURL = short
+	e := serv.store.SaveURL(url)
 
-	if err != nil {
-		short := serv.generateUniqAdress()
-		url.ShortURL = short
-		serv.store.SaveURL(url)
-		return url
+	if e != nil {
+		u, err := serv.store.LoadURL(url)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return u, repo.ErrURLAlreadyExists
 	}
 
-	return newU
+	return url, nil
 }
 
 func (serv *Shorter) GetFullURL(url *repo.URL) (u *repo.URL, err error) {

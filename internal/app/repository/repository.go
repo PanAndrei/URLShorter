@@ -32,35 +32,20 @@ func newErrURLNotFound() error {
 	return ErrURLNotFound
 }
 
-func (store *Store) SaveURL(u *URL) {
+func (store *Store) SaveURL(u *URL) error {
 	store.mux.Lock()
 	defer store.mux.Unlock()
 
 	store.s[u.ShortURL] = u.FullURL
+
+	return nil
 }
 
 func (store *Store) LoadURL(u *URL) (r *URL, err error) {
 	store.mux.Lock()
 	defer store.mux.Unlock()
 
-	if u.FullURL == "" && u.ShortURL == "" {
-		return nil, newErrURLNotFound() // empty request
-	} else if u.ShortURL == "" {
-		return store.loadByFullURL(u)
-	} else if u.FullURL == "" {
-		return store.loadByShortURL(u)
-	}
-
-	return u, nil
-}
-
-func (store *Store) IsUniqueShort(s string) bool {
-	store.mux.Lock()
-	defer store.mux.Unlock()
-
-	_, ok := store.s[s]
-
-	return !ok
+	return store.loadByFullURL(u)
 }
 
 func (store *Store) loadByFullURL(u *URL) (r *URL, err error) {
@@ -69,17 +54,6 @@ func (store *Store) loadByFullURL(u *URL) (r *URL, err error) {
 			u.ShortURL = k
 			return u, nil
 		}
-	}
-
-	return nil, newErrURLNotFound()
-}
-
-func (store *Store) loadByShortURL(u *URL) (r *URL, err error) {
-	k, ok := store.s[u.ShortURL]
-
-	if ok {
-		u.FullURL = k
-		return u, nil
 	}
 
 	return nil, newErrURLNotFound()

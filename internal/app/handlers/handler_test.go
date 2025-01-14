@@ -18,10 +18,10 @@ import (
 
 type MockShortener struct{}
 
-func (m *MockShortener) SetShortURL(u *repo.URL) *repo.URL {
+func (m *MockShortener) SetShortURL(u *repo.URL) (*repo.URL, error) {
 	u.ShortURL = "m.ShortURL"
 
-	return u
+	return u, nil
 }
 
 func (m *MockShortener) GetFullURL(u *repo.URL) (*repo.URL, error) {
