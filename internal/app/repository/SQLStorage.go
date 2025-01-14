@@ -85,6 +85,8 @@ func (d *SQLStorage) SaveURL(u *URL) error {
 				err = newErrURLAlreadyExists()
 			}
 		}
+
+		println("db11", err)
 		return err
 	}
 

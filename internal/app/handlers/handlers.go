@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -68,7 +69,6 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
 	}
-
 	u := repo.URL{
 		FullURL: receivedURL,
 	}
@@ -76,11 +76,18 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	short, err := h.shorter.SetShortURL(&u)
 
 	if err != nil {
-		res.WriteHeader(http.StatusConflict)
-	} else {
-		res.WriteHeader(http.StatusCreated)
-	}
+		if errors.Is(err, repo.ErrURLAlreadyExists) {
+			res.WriteHeader(http.StatusConflict)
+			res.Header().Set("Content-Type", "text/plain")
+			res.Write([]byte(h.config.ReturnAdress + "/" + short.ShortURL))
 
+			return
+		}
+		http.Error(res, "can't save url", http.StatusBadRequest)
+
+		return
+	}
+	res.WriteHeader(http.StatusCreated)
 	res.Header().Set("Content-Type", "text/plain")
 	res.Write([]byte(h.config.ReturnAdress + "/" + short.ShortURL))
 }
