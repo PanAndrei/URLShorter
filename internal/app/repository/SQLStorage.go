@@ -95,7 +95,7 @@ func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	ctx := context.Background()
 	var loadedURL URL
-	query := "SELECT full_url, short_url FROM urls WHERE short_url = $2"
+	query := "SELECT full_url, short_url FROM urls WHERE short_url = $1"
 	err = d.DB.QueryRowContext(ctx, query, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
