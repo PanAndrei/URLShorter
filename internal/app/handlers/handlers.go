@@ -72,23 +72,24 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	u := repo.URL{
 		FullURL: receivedURL,
 	}
-
 	short, err := h.shorter.SetShortURL(&u)
-
+	println("DBG", err)
 	if err != nil {
 		if errors.Is(err, repo.ErrURLAlreadyExists) {
-			res.WriteHeader(http.StatusConflict)
-			res.Header().Set("Content-Type", "text/plain")
-			res.Write([]byte(h.config.ReturnAdress + "/" + short.ShortURL))
-
+			if short != nil {
+				res.Header().Set("Content-Type", "text/plain")
+				res.WriteHeader(http.StatusConflict)
+				res.Write([]byte(h.config.ReturnAdress + "/" + short.ShortURL))
+				return
+			}
+			http.Error(res, "can't save url", http.StatusBadRequest)
 			return
 		}
 		http.Error(res, "can't save url", http.StatusBadRequest)
-
 		return
 	}
-	res.WriteHeader(http.StatusCreated)
 	res.Header().Set("Content-Type", "text/plain")
+	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte(h.config.ReturnAdress + "/" + short.ShortURL))
 }
 
@@ -104,10 +105,8 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 	url, e := h.shorter.SetShortURL(&u)
 
 	res.Header().Set("Content-Type", "application/json")
-
 	if e != nil {
 		if errors.Is(e, repo.ErrURLAlreadyExists) {
-
 			if url != nil {
 				var response models.APIResponse
 				data, _ := json.Marshal(response.FromURL(*url, h.config.ReturnAdress))
@@ -118,11 +117,14 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 			http.Error(res, "can't save url", http.StatusBadRequest)
 			return
 		}
+
 		http.Error(res, "Can't save URL", http.StatusBadRequest)
 		return
 	}
+
 	var response models.APIResponse
 	data, err := json.Marshal(response.FromURL(*url, h.config.ReturnAdress))
+
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
