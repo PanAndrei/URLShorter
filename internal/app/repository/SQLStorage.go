@@ -79,7 +79,7 @@ func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
 	}
 
 	if _, err := d.DB.Exec(
-		"INSERT INTO links (full_url, short_url) VALUES ($1,$2)",
+		"INSERT INTO urls (full_url, short_url) VALUES ($1,$2)",
 		u.FullURL, u.ShortURL); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
