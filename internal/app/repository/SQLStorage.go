@@ -94,49 +94,49 @@ func (d *SQLStorage) Close() {
 // }
 
 func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
-	// ctx := context.Background()
-	// if err := d.createTableIfNotExists(ctx); err != nil {
-	// 	return nil, err
-	// }
-
-	// if _, err := d.DB.Exec(
-	// 	"INSERT INTO links (full_url, short_url) VALUES ($1,$2)",
-	// 	u.FullURL, u.ShortURL); err != nil {
-	// 	var pgErr *pgconn.PgError
-	// 	if errors.As(err, &pgErr) {
-	// 		if pgErr.Code == pgerrcode.UniqueViolation {
-	// 			err = newErrURLAlreadyExists()
-	// 		}
-	// 	}
-	// 	return nil, err
-	// }
-	// return nil, nil
-
 	ctx := context.Background()
-
 	if err := d.createTableIfNotExists(ctx); err != nil {
 		return nil, err
 	}
-	var existingURL URL
-	err := d.DB.QueryRowContext(ctx,
-		`INSERT INTO urls (full_url, short_url, id)
-		 VALUES ($1, $2, $3)
-		 ON CONFLICT (full_url) DO UPDATE SET id = $3
-		 RETURNING full_url, short_url, id`,
-		u.FullURL, u.ShortURL, u.ID,
-	).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
-	if err != nil {
+
+	if _, err := d.DB.Exec(
+		"INSERT INTO links (full_url, short_url) VALUES ($1,$2)",
+		u.FullURL, u.ShortURL); err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			err = d.DB.QueryRowContext(ctx, "SELECT full_url, short_url, id FROM urls WHERE full_url = $1", u.FullURL).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
-			if err != nil {
-				return nil, fmt.Errorf("error getting existing URL: %w", err)
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				err = newErrURLAlreadyExists()
 			}
-			return &existingURL, newErrURLAlreadyExists()
 		}
-		return nil, fmt.Errorf("error saving URL: %w", err)
+		return nil, err
 	}
-	return &existingURL, nil
+	return nil, nil
+
+	// ctx := context.Background()
+
+	// if err := d.createTableIfNotExists(ctx); err != nil {
+	// 	return nil, err
+	// }
+	// var existingURL URL
+	// err := d.DB.QueryRowContext(ctx,
+	// 	`INSERT INTO urls (full_url, short_url, id)
+	// 	 VALUES ($1, $2, $3)
+	// 	 ON CONFLICT (full_url) DO UPDATE SET id = $3
+	// 	 RETURNING full_url, short_url, id`,
+	// 	u.FullURL, u.ShortURL, u.ID,
+	// ).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
+	// if err != nil {
+	// 	var pgErr *pgconn.PgError
+	// 	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+	// 		err = d.DB.QueryRowContext(ctx, "SELECT full_url, short_url, id FROM urls WHERE full_url = $1", u.FullURL).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
+	// 		if err != nil {
+	// 			return nil, fmt.Errorf("error getting existing URL: %w", err)
+	// 		}
+	// 		return &existingURL, newErrURLAlreadyExists()
+	// 	}
+	// 	return nil, fmt.Errorf("error saving URL: %w", err)
+	// }
+	// return &existingURL, nil
 }
 
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
