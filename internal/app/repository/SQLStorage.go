@@ -57,8 +57,7 @@ func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
 	_, err := d.DB.ExecContext(ctx, `
         CREATE TABLE IF NOT EXISTS urls (
            full_url TEXT UNIQUE,
-           short_url TEXT,
-           id TEXT
+           short_url TEXT
         );
     `)
 	if err != nil {
@@ -142,8 +141,8 @@ func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	ctx := context.Background()
 	var loadedURL URL
-	query := "SELECT full_url, short_url, id FROM urls WHERE short_url = $1"
-	err = d.DB.QueryRowContext(ctx, query, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL, &loadedURL.ID)
+	query := "SELECT full_url, short_url FROM urls WHERE short_url = $1"
+	err = d.DB.QueryRowContext(ctx, query, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, newErrURLNotFound()
@@ -168,14 +167,14 @@ func (d *SQLStorage) BatchURLS(urls []*URL) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(
-		"INSERT INTO urls (full_url, short_url, id) VALUES ($1, $2, $3)")
+		"INSERT INTO urls (full_url, short_url) VALUES ($1, $2)")
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	for _, url := range urls {
-		_, err := stmt.Exec(url.FullURL, url.ShortURL, url.ID)
+		_, err := stmt.Exec(url.FullURL, url.ShortURL)
 		if err != nil {
 			return err
 		}
