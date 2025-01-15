@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"math/rand"
 
 	repo "URLShorter/internal/app/repository"
@@ -39,15 +38,12 @@ func (serv *Shorter) SetShortURL(url *repo.URL) (u *repo.URL, err error) {
 	_, e := serv.store.SaveURL(&tmp)
 
 	if e != nil {
-		if errors.Is(e, repo.ErrURLAlreadyExists) {
-			loadedURL, err := serv.store.LoadURL(url)
-			if err != nil {
-				return nil, err
-			}
-
-			return loadedURL, repo.ErrURLAlreadyExists
+		loadedURL, err := serv.store.LoadURL(url)
+		if err != nil {
+			return nil, err
 		}
-		return nil, e
+
+		return loadedURL, repo.ErrURLAlreadyExists
 	}
 
 	return &tmp, nil

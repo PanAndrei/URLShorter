@@ -74,7 +74,7 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	short, err := h.shorter.SetShortURL(&u)
-
+	println("DBG", err)
 	if err != nil {
 		if errors.Is(err, repo.ErrURLAlreadyExists) {
 			res.WriteHeader(http.StatusConflict)
