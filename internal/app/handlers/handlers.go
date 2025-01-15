@@ -103,20 +103,32 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 	u := request.ToURL(request)
 	url, e := h.shorter.SetShortURL(&u)
 
+	res.Header().Set("Content-Type", "application/json")
+
+	if e != nil {
+		if errors.Is(e, repo.ErrURLAlreadyExists) {
+
+			if url != nil {
+				var response models.APIResponse
+				data, _ := json.Marshal(response.FromURL(*url, h.config.ReturnAdress))
+				res.WriteHeader(http.StatusConflict)
+				res.Write(data)
+				return
+			}
+			http.Error(res, "can't save url", http.StatusBadRequest)
+			return
+		}
+		http.Error(res, "Can't save URL", http.StatusBadRequest)
+		return
+	}
 	var response models.APIResponse
 	data, err := json.Marshal(response.FromURL(*url, h.config.ReturnAdress))
-
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
 	}
 
-	res.Header().Set("Content-Type", "application/json")
-	if e != nil {
-		res.WriteHeader(http.StatusConflict)
-	} else {
-		res.WriteHeader(http.StatusCreated)
-	}
+	res.WriteHeader(http.StatusCreated)
 	res.Write(data)
 }
 
