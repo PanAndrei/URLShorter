@@ -72,26 +72,6 @@ func (d *SQLStorage) Close() {
 	}
 }
 
-// func (d *SQLStorage) SaveURL(u *URL) error {
-// 	ctx := context.Background()
-
-// 	if _, err := d.DB.ExecContext(ctx,
-// 		"INSERT INTO urls (full_url, short_url, id) VALUES ($1, $2, $3)",
-// 		u.FullURL, u.ShortURL, u.ID); err != nil {
-// 		var pgErr *pgconn.PgError
-// 		if errors.As(err, &pgErr) {
-// 			if pgErr.Code == pgerrcode.UniqueViolation {
-// 				err = newErrURLAlreadyExists()
-// 			}
-// 		}
-
-// 		println("db11", err)
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
 func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
 	ctx := context.Background()
 	if err := d.createTableIfNotExists(ctx); err != nil {
@@ -110,38 +90,12 @@ func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
 		return nil, err
 	}
 	return nil, nil
-
-	// ctx := context.Background()
-
-	// if err := d.createTableIfNotExists(ctx); err != nil {
-	// 	return nil, err
-	// }
-	// var existingURL URL
-	// err := d.DB.QueryRowContext(ctx,
-	// 	`INSERT INTO urls (full_url, short_url, id)
-	// 	 VALUES ($1, $2, $3)
-	// 	 ON CONFLICT (full_url) DO UPDATE SET id = $3
-	// 	 RETURNING full_url, short_url, id`,
-	// 	u.FullURL, u.ShortURL, u.ID,
-	// ).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
-	// if err != nil {
-	// 	var pgErr *pgconn.PgError
-	// 	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-	// 		err = d.DB.QueryRowContext(ctx, "SELECT full_url, short_url, id FROM urls WHERE full_url = $1", u.FullURL).Scan(&existingURL.FullURL, &existingURL.ShortURL, &existingURL.ID)
-	// 		if err != nil {
-	// 			return nil, fmt.Errorf("error getting existing URL: %w", err)
-	// 		}
-	// 		return &existingURL, newErrURLAlreadyExists()
-	// 	}
-	// 	return nil, fmt.Errorf("error saving URL: %w", err)
-	// }
-	// return &existingURL, nil
 }
 
 func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	ctx := context.Background()
 	var loadedURL URL
-	query := "SELECT full_url, short_url FROM urls WHERE short_url = $1"
+	query := "SELECT full_url, short_url FROM urls WHERE short_url = $2"
 	err = d.DB.QueryRowContext(ctx, query, u.ShortURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
