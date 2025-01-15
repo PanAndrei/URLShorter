@@ -17,7 +17,7 @@ var (
 )
 
 func newErrURLAlreadyExists() error {
-	return ErrURLNotFound
+	return ErrURLAlreadyExists
 }
 
 type SQLStorage struct {
@@ -94,6 +94,24 @@ func (d *SQLStorage) Close() {
 // }
 
 func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
+	// ctx := context.Background()
+	// if err := d.createTableIfNotExists(ctx); err != nil {
+	// 	return nil, err
+	// }
+
+	// if _, err := d.DB.Exec(
+	// 	"INSERT INTO links (full_url, short_url) VALUES ($1,$2)",
+	// 	u.FullURL, u.ShortURL); err != nil {
+	// 	var pgErr *pgconn.PgError
+	// 	if errors.As(err, &pgErr) {
+	// 		if pgErr.Code == pgerrcode.UniqueViolation {
+	// 			err = newErrURLAlreadyExists()
+	// 		}
+	// 	}
+	// 	return nil, err
+	// }
+	// return nil, nil
+
 	ctx := context.Background()
 
 	if err := d.createTableIfNotExists(ctx); err != nil {
@@ -101,7 +119,7 @@ func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
 	}
 	var existingURL URL
 	err := d.DB.QueryRowContext(ctx,
-		`INSERT INTO urls (full_url, short_url, id) 
+		`INSERT INTO urls (full_url, short_url, id)
 		 VALUES ($1, $2, $3)
 		 ON CONFLICT (full_url) DO UPDATE SET id = $3
 		 RETURNING full_url, short_url, id`,
