@@ -20,41 +20,23 @@ const (
 
 func WithCoockies(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var token string
-		userCookie, err := r.Cookie(string(TokenName))
+		token, err := r.Cookie(string(TokenName))
+		var cookieString string
 
 		if err != nil {
-
-			if r.RequestURI == "/api/user/urls" {
-				http.Error(w, "empty cookie", http.StatusUnauthorized)
-				return
-			}
-			token, err = createToken()
-
-			if err != nil {
-				http.Error(w, "", http.StatusInternalServerError)
-				return
-			}
-			userCookie = setCookie(w, token)
-		}
-
-		if _, err = GetUID(userCookie.Value); err != nil {
-			http.Error(w, "user id not found in cookie", http.StatusUnauthorized)
+			cookieString, _ = createToken()
+			setCookie(w, cookieString)
+		} else if _, err := GetUID(token.Value); err != nil {
+			http.Error(w, "user id not found", http.StatusUnauthorized)
 			return
+		} else if !isTokenValid(token.Value) {
+			cookieString, _ = createToken()
+			setCookie(w, cookieString)
+		} else {
+			cookieString = token.Value
 		}
 
-		if !isTokenValid(userCookie.Value) {
-			token, err = createToken()
-			if err != nil {
-				http.Error(w, "", http.StatusInternalServerError)
-				return
-			}
-
-			setCookie(w, token)
-			userCookie = setCookie(w, token)
-		}
-
-		ctx := context.WithValue(r.Context(), TokenName, userCookie.Value)
+		ctx := context.WithValue(r.Context(), TokenName, cookieString)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
