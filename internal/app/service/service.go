@@ -40,10 +40,8 @@ func (serv *Shorter) SetShortURL(url *repo.URL) (u *repo.URL, err error) {
 	if e != nil {
 		loadedURL, err := serv.store.LoadURL(url)
 		if err != nil {
-			println("DSDSDSDDSDSDSD22")
 			return nil, repo.ErrURLNotFound
 		}
-		println("DSDSDSDDSDSDSD33")
 		return loadedURL, repo.ErrURLAlreadyExists
 	}
 

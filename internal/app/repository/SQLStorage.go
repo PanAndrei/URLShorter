@@ -84,7 +84,6 @@ func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == pgerrcode.UniqueViolation {
-				println("DSDSDSDDSDSDSD11")
 				err = newErrURLAlreadyExists()
 			}
 		}

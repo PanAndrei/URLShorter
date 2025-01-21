@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	gzp "URLShorter/internal/app/compress"
+	cookies "URLShorter/internal/app/coockies"
 	cnfg "URLShorter/internal/app/handlers/config"
 	models "URLShorter/internal/app/handlers/models"
 	log "URLShorter/internal/app/logger"
@@ -23,6 +24,7 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	r.Use(log.WithLoggingRequest)
 	r.Use(gzp.WithGzipCompression)
 	r.Use(gzp.WithGzipDecompression)
+	r.Use(cookies.WithCoockies)
 
 	r.Post("/api/shorten/batch", h.batchHandler)
 	r.Post("/api/shorten", h.apiShortenHandler)
