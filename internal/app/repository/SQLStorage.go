@@ -124,7 +124,7 @@ func (d *SQLStorage) BatchURLS(ctx context.Context, urls []*URL) error {
 	defer stmt.Close()
 
 	for _, url := range urls {
-		_, err := stmt.Exec(url.FullURL, url.ShortURL)
+		_, err := stmt.Exec(url.FullURL, url.ShortURL, url.UUID)
 		if err != nil {
 			return err
 		}
