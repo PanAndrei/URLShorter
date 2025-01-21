@@ -10,16 +10,18 @@ import (
 	"github.com/google/uuid"
 )
 
+type Token string
+
 const (
-	tokenExpire = time.Hour * 1
-	tokenName   = "token"
-	secretKey   = "verySecret1234"
+	tokenExpire       = time.Hour * 1
+	TokenName   Token = "token"
+	secretKey         = "verySecret1234"
 )
 
 func WithCoockies(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var token string
-		userCookie, err := r.Cookie(tokenName)
+		userCookie, err := r.Cookie(string(TokenName))
 
 		if err != nil {
 
@@ -37,7 +39,7 @@ func WithCoockies(next http.Handler) http.Handler {
 			userCookie = setCookie(w, token)
 		}
 
-		if _, err = getUID(userCookie.Value); err != nil {
+		if _, err = GetUID(userCookie.Value); err != nil {
 			http.Error(w, "user id not found in cookie", http.StatusUnauthorized)
 			return
 		}
@@ -52,7 +54,7 @@ func WithCoockies(next http.Handler) http.Handler {
 
 			setCookie(w, token)
 			userCookie = setCookie(w, token)
-			ctx := context.WithValue(r.Context(), tokenName, userCookie.Value)
+			ctx := context.WithValue(r.Context(), TokenName, userCookie.Value)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 	})
@@ -92,7 +94,7 @@ func createClaims(uid string) (string, error) {
 
 func setCookie(w http.ResponseWriter, token string) *http.Cookie {
 	cookie := &http.Cookie{
-		Name:     tokenName,
+		Name:     token,
 		Value:    token,
 		HttpOnly: true,
 	}
@@ -101,7 +103,7 @@ func setCookie(w http.ResponseWriter, token string) *http.Cookie {
 	return cookie
 }
 
-func getUID(token string) (string, error) {
+func GetUID(token string) (string, error) {
 	claims := &Claims{}
 	_, err := jwt.ParseWithClaims(token, claims,
 		func(t *jwt.Token) (interface{}, error) {

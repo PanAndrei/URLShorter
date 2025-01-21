@@ -29,6 +29,7 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	r.Post("/api/shorten/batch", h.batchHandler)
 	r.Post("/api/shorten", h.apiShortenHandler)
 	r.Post("/", h.mainPostHandler)
+	r.Get("/api/user/urls", h.getButchByID)
 	r.Get("/ping", h.pingDB)
 	r.Get("/{i}", h.mainGetHandler)
 
@@ -53,6 +54,7 @@ func NewHandlers(shorter sht.Short, config cnfg.Config) *handlers {
 }
 
 func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
+	var userID string
 	body, err := io.ReadAll(req.Body)
 
 	if err != nil {
@@ -61,6 +63,13 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	defer req.Body.Close()
+
+	token := req.Context().Value(cookies.TokenName).(string)
+	userID, er := cookies.GetUID(token)
+
+	if er != nil {
+		userID = ""
+	}
 
 	receivedURL := strings.TrimSpace(string(body))
 	lines := strings.Split(receivedURL, "\n")
@@ -73,6 +82,7 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	}
 	u := repo.URL{
 		FullURL: receivedURL,
+		UUID:    userID,
 	}
 
 	short, err := h.shorter.SetShortURL(req.Context(), &u)
@@ -96,13 +106,21 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 
 func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request) {
 	var request models.APIRequest
+	var userID string
 
 	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
 	}
 
+	token := req.Context().Value(cookies.TokenName).(string)
+	userID, err := cookies.GetUID(token)
+	if err != nil {
+		userID = ""
+	}
+
 	u := request.ToURL(request)
+	u.UUID = userID
 	url, e := h.shorter.SetShortURL(req.Context(), &u)
 
 	res.Header().Set("Content-Type", "application/json")
@@ -136,6 +154,7 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 
 func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	var requests []models.APIRequest
+	var userID string
 
 	if err := json.NewDecoder(req.Body).Decode(&requests); err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
@@ -144,9 +163,16 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 
 	us := make([]repo.URL, len(requests))
 
+	token := req.Context().Value(cookies.TokenName).(string)
+	userID, err := cookies.GetUID(token)
+	if err != nil {
+		userID = ""
+	}
+
 	for i, r := range requests {
 		us[i] = repo.URL{
 			FullURL: r.Original,
+			UUID:    userID,
 		}
 	}
 
@@ -193,11 +219,46 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) { // тесты
+func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) {
 	if err := h.shorter.Ping(req.Context()); err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	res.WriteHeader(http.StatusOK)
+}
+
+func (h *handlers) getButchByID(res http.ResponseWriter, req *http.Request) {
+	var butch models.ButchRequest
+	var response []models.ButchRequest
+
+	token := req.Context().Value(cookies.TokenName).(string)
+	userID, err := cookies.GetUID(token)
+	if err != nil {
+		userID = ""
+	}
+
+	urls, err := h.shorter.GetByUID(req.Context(), userID)
+
+	if err != nil || len(*urls) == 0 {
+		res.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	response = butch.FromURLs(*urls, h.config.ReturnAdress)
+
+	resp, err := json.Marshal(response)
+
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+
+	_, err = res.Write(resp)
+	if err != nil {
+		return
+	}
 }

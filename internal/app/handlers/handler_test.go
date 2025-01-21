@@ -38,6 +38,10 @@ func (m *MockShortener) BatchURLs(ctx context.Context, urls *[]repo.URL) (u *[]r
 	return nil, nil
 }
 
+func (m *MockShortener) GetByUID(ctx context.Context, id string) (u *[]repo.URL, err error) {
+	return nil, nil
+}
+
 func TestMainPostHandler(t *testing.T) {
 	h := NewHandlers(&MockShortener{}, cnfg.Config{})
 

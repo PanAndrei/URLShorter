@@ -21,7 +21,7 @@ func NewStore() *Store {
 type URL struct {
 	FullURL  string `json:"originalUrl"`
 	ShortURL string `json:"shortUrl"`
-	UUID     int    `json:"user_id"`
+	UUID     string `json:"user_id"`
 }
 
 var (
@@ -69,4 +69,10 @@ func (store *Store) BatchURLS(ctx context.Context, urls []*URL) error {
 	}
 
 	return nil
+}
+
+func (store *Store) GetByUID(ctx context.Context, id string) ([]*URL, error) {
+	var urls []*URL
+
+	return urls, nil
 }

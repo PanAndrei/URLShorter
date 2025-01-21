@@ -35,7 +35,7 @@ func (store *FileStore) SaveURL(ctx context.Context, u *URL) (*URL, error) {
 	defer file.Close()
 
 	fileInfo, _ := file.Stat()
-	u.UUID = int(fileInfo.Size())
+	u.UUID = string(fileInfo.Size())
 	encoder := json.NewEncoder(file)
 	encoder.Encode(u)
 
@@ -88,4 +88,10 @@ func (store *FileStore) BatchURLS(ctx context.Context, urls []*URL) error {
 	}
 
 	return nil
+}
+
+func (store *FileStore) GetByUID(ctx context.Context, id string) ([]*URL, error) {
+	var urls []*URL
+
+	return urls, nil
 }
