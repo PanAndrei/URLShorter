@@ -143,7 +143,6 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	us := make([]repo.URL, len(requests))
 
 	for i, r := range requests {
-
 		us[i] = repo.URL{
 			FullURL: r.Original,
 		}
@@ -158,7 +157,13 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var response models.APIResponse
-	data, err := json.Marshal(response.FromURLs(*u, h.config.ReturnAdress))
+	resp := response.FromURLs(*u, h.config.ReturnAdress)
+
+	for i, _ := range resp {
+		resp[i].ID = requests[i].ID
+	}
+
+	data, err := json.Marshal(resp)
 	if err != nil {
 		http.Error(res, "Marshal error", http.StatusBadRequest)
 		return
