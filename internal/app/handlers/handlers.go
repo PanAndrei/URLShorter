@@ -227,11 +227,11 @@ func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) {
 func (h *handlers) getButchByID(res http.ResponseWriter, req *http.Request) {
 	var butch models.ButchRequest
 	var response []models.ButchRequest
+	var userID string
 
-	token := req.Context().Value(cookies.TokenName).(string)
-	userID, err := cookies.GetUID(token)
-	if err != nil {
-		userID = ""
+	token, ok := req.Context().Value(cookies.TokenName).(string)
+	if ok {
+		userID, _ = cookies.GetUID(token)
 	}
 
 	urls, err := h.shorter.GetByUID(req.Context(), userID)
