@@ -159,7 +159,7 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	var response models.APIResponse
 	resp := response.FromURLs(*u, h.config.ReturnAdress)
 
-	for i, _ := range resp {
+	for i := range resp {
 		resp[i].ID = requests[i].ID
 	}
 
