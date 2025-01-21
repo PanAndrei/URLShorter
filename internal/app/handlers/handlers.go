@@ -231,12 +231,21 @@ func (h *handlers) getButchByID(res http.ResponseWriter, req *http.Request) {
 
 	token, ok := req.Context().Value(cookies.TokenName).(string)
 	if ok {
-		userID, _ = cookies.GetUID(token)
+		uid, err := cookies.GetUID(token)
+
+		if err != nil {
+			res.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		userID = uid
+		println("tyt1", userID)
 	}
 
 	urls, err := h.shorter.GetByUID(req.Context(), userID)
 
 	if err != nil || len(urls) == 0 {
+		println("tyt2", err)
+		println("tyt3", len(urls))
 		res.WriteHeader(http.StatusNoContent)
 		return
 	}
