@@ -54,7 +54,7 @@ func NewHandlers(shorter sht.Short, config cnfg.Config) *handlers {
 }
 
 func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
-	var userID string
+	var userID string = ""
 	body, err := io.ReadAll(req.Body)
 
 	if err != nil {
@@ -64,11 +64,9 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 
 	defer req.Body.Close()
 
-	token := req.Context().Value(cookies.TokenName).(string)
-	userID, er := cookies.GetUID(token)
-
-	if er != nil {
-		userID = ""
+	token, ok := req.Context().Value(cookies.TokenName).(string)
+	if ok {
+		userID, _ = cookies.GetUID(token)
 	}
 
 	receivedURL := strings.TrimSpace(string(body))
@@ -106,17 +104,16 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 
 func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request) {
 	var request models.APIRequest
-	var userID string
+	var userID string = ""
 
 	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
 	}
 
-	token := req.Context().Value(cookies.TokenName).(string)
-	userID, err := cookies.GetUID(token)
-	if err != nil {
-		userID = ""
+	token, ok := req.Context().Value(cookies.TokenName).(string)
+	if ok {
+		userID, _ = cookies.GetUID(token)
 	}
 
 	u := request.ToURL(request)
@@ -154,7 +151,7 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 
 func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	var requests []models.APIRequest
-	var userID string
+	var userID string = ""
 
 	if err := json.NewDecoder(req.Body).Decode(&requests); err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
@@ -163,10 +160,9 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 
 	us := make([]repo.URL, len(requests))
 
-	token := req.Context().Value(cookies.TokenName).(string)
-	userID, err := cookies.GetUID(token)
-	if err != nil {
-		userID = ""
+	token, ok := req.Context().Value(cookies.TokenName).(string)
+	if ok {
+		userID, _ = cookies.GetUID(token)
 	}
 
 	for i, r := range requests {
@@ -240,12 +236,12 @@ func (h *handlers) getButchByID(res http.ResponseWriter, req *http.Request) {
 
 	urls, err := h.shorter.GetByUID(req.Context(), userID)
 
-	if err != nil || len(*urls) == 0 {
+	if err != nil || len(urls) == 0 {
 		res.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	response = butch.FromURLs(*urls, h.config.ReturnAdress)
+	response = butch.FromURLs(urls, h.config.ReturnAdress)
 
 	resp, err := json.Marshal(response)
 

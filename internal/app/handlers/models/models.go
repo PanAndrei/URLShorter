@@ -58,7 +58,7 @@ type ButchRequest struct {
 	Original string `json:"original_url"`
 }
 
-func (b *ButchRequest) FromURLs(reps []repo.URL, host string) []ButchRequest {
+func (b *ButchRequest) FromURLs(reps []*repo.URL, host string) []ButchRequest {
 	resp := make([]ButchRequest, 0, len(reps))
 
 	for i := range reps {

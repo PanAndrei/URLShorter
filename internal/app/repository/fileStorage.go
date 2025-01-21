@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strconv"
 )
 
 type FileStore struct {
@@ -35,7 +36,7 @@ func (store *FileStore) SaveURL(ctx context.Context, u *URL) (*URL, error) {
 	defer file.Close()
 
 	fileInfo, _ := file.Stat()
-	u.UUID = string(fileInfo.Size())
+	u.UUID = strconv.FormatInt(fileInfo.Size(), 10)
 	encoder := json.NewEncoder(file)
 	encoder.Encode(u)
 

@@ -29,7 +29,6 @@ func WithCoockies(next http.Handler) http.Handler {
 				http.Error(w, "empty cookie", http.StatusUnauthorized)
 				return
 			}
-			println("tyt1")
 			token, err = createToken()
 
 			if err != nil {
@@ -46,7 +45,6 @@ func WithCoockies(next http.Handler) http.Handler {
 
 		if !isTokenValid(userCookie.Value) {
 			token, err = createToken()
-			println("tyt2")
 			if err != nil {
 				http.Error(w, "", http.StatusInternalServerError)
 				return
@@ -63,14 +61,12 @@ func WithCoockies(next http.Handler) http.Handler {
 
 func createToken() (string, error) {
 	uid := uuid.New().String()
-	println(uid, "gg5")
 	claims, err := createClaims(uid)
 
 	if err != nil {
 		return "", err
 	}
 
-	println(claims, "gg1")
 	return claims, nil
 }
 
@@ -91,8 +87,6 @@ func createClaims(uid string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	println(tokenString, "gg2")
 
 	return tokenString, nil
 }
@@ -123,8 +117,6 @@ func GetUID(token string) (string, error) {
 		return "", err
 	}
 
-	println(claims.UID, "gg3")
-
 	return claims.UID, nil
 }
 
@@ -142,6 +134,5 @@ func isTokenValid(token string) bool {
 		return false
 	}
 
-	println(t.Valid, "gg4")
 	return t.Valid
 }
