@@ -25,16 +25,16 @@ type SQLStorage struct {
 	cnfg string
 }
 
-func NewDB(cnfg string) *SQLStorage {
+func NewDB(cnfg string) (*SQLStorage, error) {
 	db, err := sql.Open("pgx", cnfg)
 	if err != nil {
 		fmt.Printf("sql.Open error: %v\n", err)
-		return nil
+		return nil, err
 	}
 
 	if err := db.Ping(); err != nil {
 		fmt.Printf("db.Ping error: %v\n", err)
-		return nil
+		return nil, err
 	}
 
 	storage := &SQLStorage{
@@ -47,10 +47,10 @@ func NewDB(cnfg string) *SQLStorage {
 
 	if err := storage.createTableIfNotExists(ctx); err != nil {
 		fmt.Printf("createTableIfNotExists error: %v\n", err)
-		return nil
+		return nil, err
 	}
 
-	return storage
+	return storage, nil
 }
 
 func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
@@ -72,8 +72,7 @@ func (d *SQLStorage) Close() {
 	}
 }
 
-func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
-	ctx := context.Background()
+func (d *SQLStorage) SaveURL(ctx context.Context, u *URL) (*URL, error) {
 	if err := d.createTableIfNotExists(ctx); err != nil {
 		return nil, err
 	}
@@ -89,14 +88,13 @@ func (d *SQLStorage) SaveURL(u *URL) (*URL, error) {
 		}
 		return nil, err
 	}
-	return nil, nil
+	return u, nil
 }
 
-func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
-	ctx := context.Background()
+func (d *SQLStorage) LoadURL(ctx context.Context, u *URL) (*URL, error) {
 	var loadedURL URL
 	query := "SELECT full_url, short_url FROM urls WHERE short_url = $1 OR full_url = $2"
-	err = d.DB.QueryRowContext(ctx, query, u.ShortURL, u.FullURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL)
+	err := d.DB.QueryRowContext(ctx, query, u.ShortURL, u.FullURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, newErrURLNotFound()
@@ -106,14 +104,11 @@ func (d *SQLStorage) LoadURL(u *URL) (r *URL, err error) {
 	return &loadedURL, nil
 }
 
-func (d *SQLStorage) Ping() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
+func (d *SQLStorage) Ping(ctx context.Context) error {
 	return d.DB.PingContext(ctx)
 }
 
-func (d *SQLStorage) BatchURLS(urls []*URL) error {
+func (d *SQLStorage) BatchURLS(ctx context.Context, urls []*URL) error {
 	tx, err := d.DB.Begin()
 	if err != nil {
 		return err

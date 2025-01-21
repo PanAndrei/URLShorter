@@ -75,7 +75,7 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 		FullURL: receivedURL,
 	}
 
-	short, err := h.shorter.SetShortURL(&u)
+	short, err := h.shorter.SetShortURL(req.Context(), &u)
 
 	if err != nil {
 		if errors.Is(err, repo.ErrURLAlreadyExists) {
@@ -103,7 +103,7 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 	}
 
 	u := request.ToURL(request)
-	url, e := h.shorter.SetShortURL(&u)
+	url, e := h.shorter.SetShortURL(req.Context(), &u)
 
 	res.Header().Set("Content-Type", "application/json")
 
@@ -145,27 +145,27 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	us := make([]repo.URL, len(requests))
 
 	for i, r := range requests {
-
 		us[i] = repo.URL{
 			FullURL: r.Original,
-			ID:      r.ID,
 		}
 	}
 
 	urls := &us
-	u, err := h.shorter.BatchURLs(urls)
+	u, err := h.shorter.BatchURLs(req.Context(), urls)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	for _, v := range *u {
-		println("gg", v.FullURL, v.ShortURL, v.ID)
+	var response models.APIResponse
+	resp := response.FromURLs(*u, h.config.ReturnAdress)
+
+	for i := range resp {
+		resp[i].ID = requests[i].ID
 	}
 
-	var response models.APIResponse
-	data, err := json.Marshal(response.FromURLs(*u, h.config.ReturnAdress))
+	data, err := json.Marshal(resp)
 	if err != nil {
 		http.Error(res, "Marshal error", http.StatusBadRequest)
 		return
@@ -182,8 +182,7 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 	u := repo.URL{
 		ShortURL: iStr,
 	}
-	println("gggg1", iStr)
-	url, err := h.shorter.GetFullURL(&u)
+	url, err := h.shorter.GetFullURL(req.Context(), &u)
 
 	if err != nil {
 		http.Error(res, "URL not found", http.StatusBadRequest)
@@ -195,7 +194,7 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) { // тесты
-	if err := h.shorter.Ping(); err != nil {
+	if err := h.shorter.Ping(req.Context()); err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}

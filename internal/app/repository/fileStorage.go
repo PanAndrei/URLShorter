@@ -2,6 +2,7 @@ package repository
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"os"
 )
@@ -24,7 +25,7 @@ func NewFileStore(fileName string) (*FileStore, error) {
 	}, nil
 }
 
-func (store *FileStore) SaveURL(u *URL) (*URL, error) {
+func (store *FileStore) SaveURL(ctx context.Context, u *URL) (*URL, error) {
 	file, err := os.OpenFile(store.fileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 
 	if err != nil {
@@ -41,7 +42,7 @@ func (store *FileStore) SaveURL(u *URL) (*URL, error) {
 	return nil, nil
 }
 
-func (store *FileStore) LoadURL(u *URL) (r *URL, err error) {
+func (store *FileStore) LoadURL(_ context.Context, u *URL) (r *URL, err error) {
 	file, err := os.OpenFile(store.fileName, os.O_RDONLY, 0666)
 
 	if err != nil {
@@ -77,13 +78,13 @@ func (store *FileStore) LoadURL(u *URL) (r *URL, err error) {
 	return nil, newErrURLNotFound()
 }
 
-func (store *FileStore) Ping() error {
+func (store *FileStore) Ping(_ context.Context) error {
 	return nil
 }
 
-func (store *FileStore) BatchURLS(urls []*URL) error {
+func (store *FileStore) BatchURLS(ctx context.Context, urls []*URL) error {
 	for _, u := range urls {
-		store.SaveURL(u)
+		store.SaveURL(ctx, u)
 	}
 
 	return nil

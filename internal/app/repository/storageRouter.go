@@ -2,13 +2,14 @@ package repository
 
 import (
 	hadlCnfg "URLShorter/internal/app/handlers/config"
+	"context"
 )
 
 type Repository interface {
-	SaveURL(u *URL) (*URL, error)
-	LoadURL(u *URL) (r *URL, err error)
-	Ping() error
-	BatchURLS(urls []*URL) error
+	SaveURL(ctx context.Context, u *URL) (*URL, error)
+	LoadURL(ctx context.Context, u *URL) (r *URL, err error)
+	Ping(ctx context.Context) error
+	BatchURLS(ctx context.Context, urls []*URL) error
 }
 
 type StorageRouter struct{}
@@ -19,8 +20,10 @@ func NewStorageRouter() *StorageRouter {
 
 func (r *StorageRouter) GetStorage(config hadlCnfg.Config) (Repository, error) {
 	if config.PostgreSQLAdress != "" {
-		db := NewDB(config.PostgreSQLAdress)
-		return db, nil
+		db, err := NewDB(config.PostgreSQLAdress)
+		if err == nil {
+			return db, nil
+		}
 	}
 
 	if config.FileStorageAdress != "" {
