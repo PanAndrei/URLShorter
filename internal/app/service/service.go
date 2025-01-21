@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"math/rand"
 
 	repo "URLShorter/internal/app/repository"
@@ -12,10 +13,10 @@ const (
 )
 
 type Short interface {
-	SetShortURL(url *repo.URL) (u *repo.URL, err error)
-	GetFullURL(url *repo.URL) (u *repo.URL, err error)
-	Ping() error
-	BatchURLs(urls *[]repo.URL) (u *[]repo.URL, err error)
+	SetShortURL(ctx context.Context, url *repo.URL) (u *repo.URL, err error)
+	GetFullURL(ctx context.Context, url *repo.URL) (u *repo.URL, err error)
+	Ping(ctx context.Context) error
+	BatchURLs(ctx context.Context, urls *[]repo.URL) (u *[]repo.URL, err error)
 }
 
 type Shorter struct {
@@ -28,30 +29,28 @@ func NewShorter(store repo.Repository) *Shorter {
 	}
 }
 
-func (serv *Shorter) SetShortURL(url *repo.URL) (u *repo.URL, err error) {
+func (serv *Shorter) SetShortURL(ctx context.Context, url *repo.URL) (u *repo.URL, err error) {
 	short := serv.generateUniqAdress()
 	tmp := repo.URL{
 		FullURL:  url.FullURL,
 		ShortURL: short,
 	}
 
-	_, e := serv.store.SaveURL(&tmp)
+	_, e := serv.store.SaveURL(ctx, &tmp)
 
 	if e != nil {
-		loadedURL, err := serv.store.LoadURL(url)
+		loadedURL, err := serv.store.LoadURL(ctx, url)
 		if err != nil {
-			println("DSDSDSDDSDSDSD22")
 			return nil, repo.ErrURLNotFound
 		}
-		println("DSDSDSDDSDSDSD33")
 		return loadedURL, repo.ErrURLAlreadyExists
 	}
 
 	return &tmp, nil
 }
 
-func (serv *Shorter) GetFullURL(url *repo.URL) (u *repo.URL, err error) {
-	newU, err := serv.store.LoadURL(url)
+func (serv *Shorter) GetFullURL(ctx context.Context, url *repo.URL) (u *repo.URL, err error) {
+	newU, err := serv.store.LoadURL(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -69,18 +68,18 @@ func (serv *Shorter) generateUniqAdress() string {
 	return string(b)
 }
 
-func (serv *Shorter) Ping() error {
-	return serv.store.Ping()
+func (serv *Shorter) Ping(ctx context.Context) error {
+	return serv.store.Ping(ctx)
 }
 
-func (serv *Shorter) BatchURLs(urls *[]repo.URL) (u *[]repo.URL, err error) {
+func (serv *Shorter) BatchURLs(ctx context.Context, urls *[]repo.URL) (u *[]repo.URL, err error) {
 	urs := make([]*repo.URL, 0, len(*urls))
 	for i := range *urls {
 		(*urls)[i].ShortURL = serv.generateUniqAdress()
 		urs = append(urs, &(*urls)[i])
 	}
 
-	if er := serv.store.BatchURLS(urs); er != nil {
+	if er := serv.store.BatchURLS(ctx, urs); er != nil {
 		return nil, er
 	}
 

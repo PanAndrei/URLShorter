@@ -21,7 +21,6 @@ func (r *APIRequest) ToURL(req APIRequest) repo.URL {
 
 	return repo.URL{
 		FullURL: url,
-		ID:      req.ID,
 	}
 }
 
@@ -43,7 +42,6 @@ func (r *APIResponse) FromURL(rep repo.URL, host string) APIResponse {
 	return APIResponse{
 		Result: host + "/" + rep.ShortURL,
 		Short:  host + "/" + rep.ShortURL,
-		ID:     rep.ID,
 	}
 }
 
