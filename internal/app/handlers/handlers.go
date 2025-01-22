@@ -83,6 +83,8 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 		UUID:    userID,
 	}
 
+	println("tyt0", u.FullURL, u.UUID)
+
 	short, err := h.shorter.SetShortURL(req.Context(), &u)
 
 	if err != nil {
