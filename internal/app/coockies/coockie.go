@@ -22,6 +22,7 @@ func WithCoockies(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var cookieString string
 		token, err := r.Cookie(string(TokenName))
+
 		if err != nil {
 			cookieString, err = createToken()
 			if err != nil {
@@ -29,18 +30,23 @@ func WithCoockies(next http.Handler) http.Handler {
 				return
 			}
 			setCookie(w, cookieString, r)
-		} else if _, err := GetUID(token.Value); err != nil {
-			http.Error(w, "user id not found", http.StatusUnauthorized)
-			return
-		} else if !isTokenValid(token.Value) {
-			cookieString, err = createToken()
+		} else {
+			valid, err := isTokenValid(token.Value)
 			if err != nil {
-				http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
+				http.Error(w, "user id not found", http.StatusUnauthorized)
 				return
 			}
-			setCookie(w, cookieString, r)
-		} else {
-			cookieString = token.Value
+			if !valid {
+				cookieString, err = createToken()
+				if err != nil {
+					http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
+					return
+				}
+				setCookie(w, cookieString, r)
+			} else {
+				cookieString = token.Value
+			}
+
 		}
 
 		ctx := context.WithValue(r.Context(), TokenName, cookieString)
@@ -109,19 +115,19 @@ func GetUID(token string) (string, error) {
 	return claims.UID, nil
 }
 
-func isTokenValid(token string) bool {
+func isTokenValid(token string) (bool, error) {
 	claims := &Claims{}
 
 	t, err := jwt.ParseWithClaims(token, claims,
 		func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+				return false, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 			}
 			return []byte(secretKey), nil
 		})
 	if err != nil {
-		return false
+		return false, err
 	}
 
-	return t.Valid
+	return t.Valid, nil
 }
