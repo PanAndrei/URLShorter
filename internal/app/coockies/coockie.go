@@ -31,22 +31,30 @@ func WithCoockies(next http.Handler) http.Handler {
 			}
 			setCookie(w, cookieString, r)
 		} else {
-			valid, err := isTokenValid(token.Value)
+			_, err := GetUID(token.Value)
 			if err != nil {
-				http.Error(w, "user id not found", http.StatusUnauthorized)
-				return
-			}
-			if !valid {
 				cookieString, err = createToken()
 				if err != nil {
 					http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
 					return
 				}
 				setCookie(w, cookieString, r)
-			} else {
-				cookieString = token.Value
+				http.Error(w, "user id not found", http.StatusUnauthorized)
+				return
 			}
 
+			valid, err := isTokenValid(token.Value)
+			if err != nil || !valid {
+				cookieString, err = createToken()
+				if err != nil {
+					http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
+					return
+				}
+				setCookie(w, cookieString, r)
+				http.Error(w, "user id not found", http.StatusUnauthorized)
+				return
+			}
+			cookieString = token.Value
 		}
 
 		ctx := context.WithValue(r.Context(), TokenName, cookieString)
@@ -104,12 +112,15 @@ func GetUID(token string) (string, error) {
 	_, err := jwt.ParseWithClaims(token, claims,
 		func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+				return "", fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 			}
 			return []byte(secretKey), nil
 		})
-	if err != nil || claims.UID == "" {
+	if err != nil {
 		return "", err
+	}
+	if claims.UID == "" {
+		return "", fmt.Errorf("uid is empty")
 	}
 
 	return claims.UID, nil
