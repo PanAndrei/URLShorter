@@ -10,28 +10,36 @@ import (
 	"github.com/google/uuid"
 )
 
-type Token string
+type AuthToken string
 
 const (
-	tokenExpire       = time.Hour * 1
-	TokenName   Token = "token"
-	secretKey         = "verySecret1234"
+	tokenExpire           = time.Hour * 1
+	TokenName   AuthToken = "auth_token"
+	secretKey             = "verySecret1234"
 )
 
 func WithCoockies(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, err := r.Cookie(string(TokenName))
 		var cookieString string
+		token, err := r.Cookie(string(TokenName))
 
 		if err != nil {
-			cookieString, _ = createToken()
-			setCookie(w, cookieString)
+			cookieString, err = createToken()
+			if err != nil {
+				http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
+				return
+			}
+			setCookie(w, cookieString, r)
 		} else if _, err := GetUID(token.Value); err != nil {
 			http.Error(w, "user id not found", http.StatusUnauthorized)
 			return
 		} else if !isTokenValid(token.Value) {
-			cookieString, _ = createToken()
-			setCookie(w, cookieString)
+			cookieString, err = createToken()
+			if err != nil {
+				http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
+				return
+			}
+			setCookie(w, cookieString, r)
 		} else {
 			cookieString = token.Value
 		}
@@ -73,9 +81,9 @@ func createClaims(uid string) (string, error) {
 	return tokenString, nil
 }
 
-func setCookie(w http.ResponseWriter, token string) *http.Cookie {
+func setCookie(w http.ResponseWriter, token string, r *http.Request) *http.Cookie {
 	cookie := &http.Cookie{
-		Name:     token,
+		Name:     string(TokenName),
 		Value:    token,
 		MaxAge:   10000,
 		Path:     "/",
