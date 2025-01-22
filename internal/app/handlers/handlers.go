@@ -83,8 +83,6 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 		UUID:    userID,
 	}
 
-	println("tyt0", u.FullURL, u.UUID)
-
 	short, err := h.shorter.SetShortURL(req.Context(), &u)
 
 	if err != nil {
@@ -232,28 +230,31 @@ func (h *handlers) getButchByID(res http.ResponseWriter, req *http.Request) {
 	var userID string
 
 	token, ok := req.Context().Value(cookies.TokenName).(string)
-	if ok {
-		uid, err := cookies.GetUID(token)
 
-		if err != nil {
-			res.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		userID = uid
-		println("tyt1", userID)
+	if !ok {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
 	}
 
-	urls, err := h.shorter.GetByUID(req.Context(), userID)
+	uid, err := cookies.GetUID(token)
+	if err != nil {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
-	if err != nil || len(urls) == 0 {
-		println("tyt2", err)
-		println("tyt3", len(urls))
+	userID = uid
+	urls, err := h.shorter.GetByUID(req.Context(), userID)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if len(urls) == 0 {
 		res.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	response = butch.FromURLs(urls, h.config.ReturnAdress)
-
 	resp, err := json.Marshal(response)
 
 	if err != nil {
