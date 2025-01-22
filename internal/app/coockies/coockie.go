@@ -22,32 +22,25 @@ func WithCoockies(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var cookieString string
 		token, err := r.Cookie(string(TokenName))
-		fmt.Println("Middleware - token: ", token)
 		if err != nil {
-			fmt.Println("Middleware - no cookie found")
 			cookieString, err = createToken()
 			if err != nil {
 				http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
 				return
 			}
-			fmt.Println("Middleware - generated a new token: ", cookieString)
 			setCookie(w, cookieString, r)
 		} else if _, err := GetUID(token.Value); err != nil {
-			fmt.Println("Middleware - user id not found in cookie")
 			http.Error(w, "user id not found", http.StatusUnauthorized)
 			return
 		} else if !isTokenValid(token.Value) {
-			fmt.Println("Middleware - token invalid")
 			cookieString, err = createToken()
 			if err != nil {
 				http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
 				return
 			}
-			fmt.Println("Middleware - re-generated a new token: ", cookieString)
 			setCookie(w, cookieString, r)
 		} else {
 			cookieString = token.Value
-			fmt.Println("Middleware - valid token found in cookie")
 		}
 
 		ctx := context.WithValue(r.Context(), TokenName, cookieString)
@@ -109,11 +102,7 @@ func GetUID(token string) (string, error) {
 			}
 			return []byte(secretKey), nil
 		})
-	if err != nil {
-		return "", err
-	}
-
-	if !isTokenValid(claims.UID) || claims.UID == "" {
+	if err != nil || claims.UID == "" {
 		return "", err
 	}
 
