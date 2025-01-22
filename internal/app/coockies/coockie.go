@@ -113,6 +113,10 @@ func GetUID(token string) (string, error) {
 		return "", err
 	}
 
+	if !isTokenValid(claims.UID) || claims.UID == "" {
+		return "", err
+	}
+
 	return claims.UID, nil
 }
 
