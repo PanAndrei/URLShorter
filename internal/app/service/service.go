@@ -35,6 +35,7 @@ func (serv *Shorter) SetShortURL(ctx context.Context, url *repo.URL) (u *repo.UR
 	tmp := repo.URL{
 		FullURL:  url.FullURL,
 		ShortURL: short,
+		UUID:     url.UUID,
 	}
 
 	_, e := serv.store.SaveURL(ctx, &tmp)
