@@ -25,7 +25,7 @@ func run() error {
 	}
 
 	storageRouter := repo.NewStorageRouter()
-	repo, err := storageRouter.GetStorage(flags.Cnfg.Handlers.FileStorageAdress)
+	repo, err := storageRouter.GetStorage(flags.Cnfg.Handlers)
 
 	if err != nil {
 		return err

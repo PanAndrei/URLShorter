@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"math/rand"
 
 	repo "URLShorter/internal/app/repository"
@@ -8,12 +9,14 @@ import (
 
 const (
 	adressLenght = 8
-	charset      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" // как бы тут через range и askii покрасивее
+	charset      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
 type Short interface {
-	SetShortURL(url *repo.URL) (u *repo.URL)
-	GetFullURL(url *repo.URL) (u *repo.URL, err error)
+	SetShortURL(ctx context.Context, url *repo.URL) (u *repo.URL, err error)
+	GetFullURL(ctx context.Context, url *repo.URL) (u *repo.URL, err error)
+	Ping(ctx context.Context) error
+	BatchURLs(ctx context.Context, urls *[]repo.URL) (u *[]repo.URL, err error)
 }
 
 type Shorter struct {
@@ -26,22 +29,28 @@ func NewShorter(store repo.Repository) *Shorter {
 	}
 }
 
-func (serv *Shorter) SetShortURL(url *repo.URL) (u *repo.URL) {
-	newU, err := serv.store.LoadURL(url)
-
-	if err != nil {
-		short := serv.generateUniqAdress()
-		url.ShortURL = short
-		serv.store.SaveURL(url)
-		return url
+func (serv *Shorter) SetShortURL(ctx context.Context, url *repo.URL) (u *repo.URL, err error) {
+	short := serv.generateUniqAdress()
+	tmp := repo.URL{
+		FullURL:  url.FullURL,
+		ShortURL: short,
 	}
 
-	return newU
+	_, e := serv.store.SaveURL(ctx, &tmp)
+
+	if e != nil {
+		loadedURL, err := serv.store.LoadURL(ctx, url)
+		if err != nil {
+			return nil, repo.ErrURLNotFound
+		}
+		return loadedURL, repo.ErrURLAlreadyExists
+	}
+
+	return &tmp, nil
 }
 
-func (serv *Shorter) GetFullURL(url *repo.URL) (u *repo.URL, err error) {
-	newU, err := serv.store.LoadURL(url)
-
+func (serv *Shorter) GetFullURL(ctx context.Context, url *repo.URL) (u *repo.URL, err error) {
+	newU, err := serv.store.LoadURL(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -52,17 +61,27 @@ func (serv *Shorter) GetFullURL(url *repo.URL) (u *repo.URL, err error) {
 func (serv *Shorter) generateUniqAdress() string {
 	b := make([]byte, adressLenght)
 
-	for {
-		for i := range b {
-			b[i] = charset[rand.Intn(len(charset))]
-		}
-
-		if !serv.store.IsUniqueShort(string(b)) {
-			b = make([]byte, adressLenght)
-		} else {
-			break
-		}
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
 	}
 
 	return string(b)
+}
+
+func (serv *Shorter) Ping(ctx context.Context) error {
+	return serv.store.Ping(ctx)
+}
+
+func (serv *Shorter) BatchURLs(ctx context.Context, urls *[]repo.URL) (u *[]repo.URL, err error) {
+	urs := make([]*repo.URL, 0, len(*urls))
+	for i := range *urls {
+		(*urls)[i].ShortURL = serv.generateUniqAdress()
+		urs = append(urs, &(*urls)[i])
+	}
+
+	if er := serv.store.BatchURLS(ctx, urs); er != nil {
+		return nil, er
+	}
+
+	return urls, nil
 }

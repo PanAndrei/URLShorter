@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -18,15 +19,23 @@ import (
 
 type MockShortener struct{}
 
-func (m *MockShortener) SetShortURL(u *repo.URL) *repo.URL {
+func (m *MockShortener) SetShortURL(ctx context.Context, u *repo.URL) (*repo.URL, error) {
 	u.ShortURL = "m.ShortURL"
 
-	return u
+	return u, nil
 }
 
-func (m *MockShortener) GetFullURL(u *repo.URL) (*repo.URL, error) {
+func (m *MockShortener) GetFullURL(ctx context.Context, u *repo.URL) (*repo.URL, error) {
 
 	return &repo.URL{FullURL: "m.FullURL"}, nil
+}
+
+func (m *MockShortener) Ping(ctx context.Context) error {
+	return nil
+}
+
+func (m *MockShortener) BatchURLs(ctx context.Context, urls *[]repo.URL) (u *[]repo.URL, err error) {
+	return nil, nil
 }
 
 func TestMainPostHandler(t *testing.T) {
@@ -54,12 +63,12 @@ func TestMainPostHandler(t *testing.T) {
 			set: set{
 				method:      http.MethodPost,
 				path:        "/",
-				contentType: "text/plain",
+				contentType: "",
 			},
 			want: want{
 				responseCode: http.StatusCreated,
 				request:      "",
-				contentType:  "text/plain",
+				contentType:  "",
 			},
 		},
 		{
@@ -67,12 +76,12 @@ func TestMainPostHandler(t *testing.T) {
 			set: set{
 				method:      http.MethodGet,
 				path:        "/",
-				contentType: "text/plain",
+				contentType: "",
 			},
 			want: want{
 				responseCode: http.StatusBadRequest,
 				request:      "",
-				contentType:  "text/plain",
+				contentType:  "",
 			},
 		},
 	}

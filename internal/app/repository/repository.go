@@ -1,15 +1,10 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"sync"
 )
-
-type Repository interface {
-	SaveURL(u *URL)
-	LoadURL(u *URL) (r *URL, err error)
-	IsUniqueShort(s string) bool
-}
 
 type Store struct {
 	mux *sync.Mutex
@@ -26,7 +21,7 @@ func NewStore() *Store {
 type URL struct {
 	FullURL  string `json:"originalUrl"`
 	ShortURL string `json:"shortUrl"`
-	UUID     int    `json:"uuid"`
+	UUID     int    `json:"user_id"`
 }
 
 var (
@@ -37,46 +32,20 @@ func newErrURLNotFound() error {
 	return ErrURLNotFound
 }
 
-func (store *Store) SaveURL(u *URL) {
+func (store *Store) SaveURL(_ context.Context, u *URL) (*URL, error) {
 	store.mux.Lock()
 	defer store.mux.Unlock()
 
 	store.s[u.ShortURL] = u.FullURL
+
+	return nil, nil
 }
 
-func (store *Store) LoadURL(u *URL) (r *URL, err error) {
+func (store *Store) LoadURL(_ context.Context, u *URL) (r *URL, err error) {
 	store.mux.Lock()
 	defer store.mux.Unlock()
 
-	if u.FullURL == "" && u.ShortURL == "" {
-		return nil, newErrURLNotFound() // empty request
-	} else if u.ShortURL == "" {
-		return store.loadByFullURL(u)
-	} else if u.FullURL == "" {
-		return store.loadByShortURL(u)
-	}
-
-	return u, nil
-}
-
-func (store *Store) IsUniqueShort(s string) bool {
-	store.mux.Lock()
-	defer store.mux.Unlock()
-
-	_, ok := store.s[s]
-
-	return !ok
-}
-
-func (store *Store) loadByFullURL(u *URL) (r *URL, err error) {
-	for k, v := range store.s {
-		if v == u.FullURL {
-			u.ShortURL = k
-			return u, nil
-		}
-	}
-
-	return nil, newErrURLNotFound()
+	return store.loadByShortURL(u)
 }
 
 func (store *Store) loadByShortURL(u *URL) (r *URL, err error) {
@@ -88,4 +57,16 @@ func (store *Store) loadByShortURL(u *URL) (r *URL, err error) {
 	}
 
 	return nil, newErrURLNotFound()
+}
+
+func (store *Store) Ping(_ context.Context) error {
+	return nil
+}
+
+func (store *Store) BatchURLS(ctx context.Context, urls []*URL) error {
+	for _, u := range urls {
+		store.SaveURL(ctx, u)
+	}
+
+	return nil
 }

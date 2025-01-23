@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -23,8 +24,10 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	r.Use(gzp.WithGzipCompression)
 	r.Use(gzp.WithGzipDecompression)
 
-	r.Post("/", h.mainPostHandler)
+	r.Post("/api/shorten/batch", h.batchHandler)
 	r.Post("/api/shorten", h.apiShortenHandler)
+	r.Post("/", h.mainPostHandler)
+	r.Get("/ping", h.pingDB)
 	r.Get("/{i}", h.mainGetHandler)
 
 	srv := &http.Server{
@@ -66,16 +69,27 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
 	}
-
 	u := repo.URL{
 		FullURL: receivedURL,
 	}
 
-	short := h.shorter.SetShortURL(&u).ShortURL
+	short, err := h.shorter.SetShortURL(req.Context(), &u)
 
-	res.Header().Set("Content-Type", "text/plain")
+	if err != nil {
+		if errors.Is(err, repo.ErrURLAlreadyExists) {
+			res.WriteHeader(http.StatusConflict)
+			res.Header().Set("Content-Type", "text/plain")
+			res.Write([]byte(h.config.ReturnAdress + "/" + short.ShortURL))
+
+			return
+		}
+		http.Error(res, "can't save url", http.StatusBadRequest)
+
+		return
+	}
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(h.config.ReturnAdress + "/" + short))
+	res.Header().Set("Content-Type", "text/plain")
+	res.Write([]byte(h.config.ReturnAdress + "/" + short.ShortURL))
 }
 
 func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request) {
@@ -87,13 +101,71 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 	}
 
 	u := request.ToURL(request)
-	h.shorter.SetShortURL(&u)
+	url, e := h.shorter.SetShortURL(req.Context(), &u)
 
+	res.Header().Set("Content-Type", "application/json")
+
+	if e != nil {
+		if errors.Is(e, repo.ErrURLAlreadyExists) {
+
+			if url != nil {
+				var response models.APIResponse
+				data, _ := json.Marshal(response.FromURL(*url, h.config.ReturnAdress))
+				res.WriteHeader(http.StatusConflict)
+				res.Write(data)
+				return
+			}
+			http.Error(res, "can't save url", http.StatusBadRequest)
+			return
+		}
+		http.Error(res, "Can't save URL", http.StatusBadRequest)
+		return
+	}
 	var response models.APIResponse
-	data, err := json.Marshal(response.FromURL(u, h.config.ReturnAdress))
-
+	data, err := json.Marshal(response.FromURL(*url, h.config.ReturnAdress))
 	if err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
+		return
+	}
+
+	res.WriteHeader(http.StatusCreated)
+	res.Write(data)
+}
+
+func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
+	var requests []models.APIRequest
+
+	if err := json.NewDecoder(req.Body).Decode(&requests); err != nil {
+		http.Error(res, "Body is empty", http.StatusBadRequest)
+		return
+	}
+
+	us := make([]repo.URL, len(requests))
+
+	for i, r := range requests {
+		us[i] = repo.URL{
+			FullURL: r.Original,
+		}
+	}
+
+	urls := &us
+	u, err := h.shorter.BatchURLs(req.Context(), urls)
+
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var response models.APIResponse
+	resp := response.FromURLs(*u, h.config.ReturnAdress)
+
+	for i := range resp {
+		resp[i].ID = requests[i].ID
+	}
+
+	data, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(res, "Marshal error", http.StatusBadRequest)
 		return
 	}
 
@@ -108,8 +180,7 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 	u := repo.URL{
 		ShortURL: iStr,
 	}
-
-	url, err := h.shorter.GetFullURL(&u)
+	url, err := h.shorter.GetFullURL(req.Context(), &u)
 
 	if err != nil {
 		http.Error(res, "URL not found", http.StatusBadRequest)
@@ -118,4 +189,13 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Location", url.FullURL)
 	res.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) { // тесты
+	if err := h.shorter.Ping(req.Context()); err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
 }

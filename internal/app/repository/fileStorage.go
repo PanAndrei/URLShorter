@@ -2,6 +2,7 @@ package repository
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"os"
 )
@@ -24,22 +25,24 @@ func NewFileStore(fileName string) (*FileStore, error) {
 	}, nil
 }
 
-func (store *FileStore) SaveURL(u *URL) {
+func (store *FileStore) SaveURL(ctx context.Context, u *URL) (*URL, error) {
 	file, err := os.OpenFile(store.fileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	defer file.Close()
 
 	fileInfo, _ := file.Stat()
-	u.UUID = int(fileInfo.Size()) // заглушка что бы UUID не генерить или не читать сколько строк в фале
+	u.UUID = int(fileInfo.Size())
 	encoder := json.NewEncoder(file)
 	encoder.Encode(u)
+
+	return nil, nil
 }
 
-func (store *FileStore) LoadURL(u *URL) (r *URL, err error) {
+func (store *FileStore) LoadURL(_ context.Context, u *URL) (r *URL, err error) {
 	file, err := os.OpenFile(store.fileName, os.O_RDONLY, 0666)
 
 	if err != nil {
@@ -75,9 +78,14 @@ func (store *FileStore) LoadURL(u *URL) (r *URL, err error) {
 	return nil, newErrURLNotFound()
 }
 
-func (store *FileStore) IsUniqueShort(s string) bool {
-	u := URL{ShortURL: s}
-	_, err := store.LoadURL(&u)
+func (store *FileStore) Ping(_ context.Context) error {
+	return nil
+}
 
-	return err != nil
+func (store *FileStore) BatchURLS(ctx context.Context, urls []*URL) error {
+	for _, u := range urls {
+		store.SaveURL(ctx, u)
+	}
+
+	return nil
 }
