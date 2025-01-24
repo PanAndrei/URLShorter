@@ -33,24 +33,24 @@ func WithCoockies(next http.Handler) http.Handler {
 		} else {
 			_, err := GetUID(token.Value)
 			if err != nil {
-				cookieString, err = createToken()
-				if err != nil {
-					http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
-					return
-				}
-				setCookie(w, cookieString, r)
+				// cookieString, err = createToken()
+				// if err != nil {
+				// 	http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
+				// 	return
+				// }
+				// setCookie(w, cookieString, r)
 				http.Error(w, "user id not found", http.StatusUnauthorized)
 				return
 			}
 
 			valid, err := isTokenValid(token.Value)
 			if err != nil || !valid {
-				cookieString, err = createToken()
-				if err != nil {
-					http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
-					return
-				}
-				setCookie(w, cookieString, r)
+				// cookieString, err = createToken()
+				// if err != nil {
+				// 	http.Error(w, "failed to generate a new token", http.StatusInternalServerError)
+				// 	return
+				// }
+				// setCookie(w, cookieString, r)
 				http.Error(w, "user id not found", http.StatusUnauthorized)
 				return
 			}
