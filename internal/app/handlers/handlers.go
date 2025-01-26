@@ -231,7 +231,7 @@ func (h *handlers) getButchByID(res http.ResponseWriter, req *http.Request) {
 
 	cc, _ := req.Cookie("auth_token")
 
-	println("dbg-1", cc)
+	println("dbg-0", cc)
 
 	token, ok := req.Context().Value(cookies.TokenName).(string)
 
