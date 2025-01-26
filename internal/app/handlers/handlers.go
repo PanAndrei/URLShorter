@@ -229,7 +229,12 @@ func (h *handlers) getButchByID(res http.ResponseWriter, req *http.Request) {
 	var response []models.ButchRequest
 	var userID string
 
-	cc, _ := req.Cookie("auth_token")
+	cc, err := req.Cookie("auth_token")
+
+	if err != nil {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
 	println("dbg-0", cc)
 
