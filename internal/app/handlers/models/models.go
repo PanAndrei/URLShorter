@@ -52,3 +52,23 @@ func (r *APIResponse) FromURLs(reps []repo.URL, host string) []APIResponse {
 	}
 	return responses
 }
+
+type ButchRequest struct {
+	Short    string `json:"short_url"`
+	Original string `json:"original_url"`
+}
+
+func (b *ButchRequest) FromURLs(reps []*repo.URL, host string) []ButchRequest {
+	resp := make([]ButchRequest, 0, len(reps))
+
+	for i := range reps {
+		n := ButchRequest{
+			Short:    host + "/" + reps[i].ShortURL,
+			Original: reps[i].FullURL,
+		}
+
+		resp = append(resp, n)
+	}
+
+	return resp
+}

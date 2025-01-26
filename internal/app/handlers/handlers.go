@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	gzp "URLShorter/internal/app/compress"
+	cookies "URLShorter/internal/app/coockies"
 	cnfg "URLShorter/internal/app/handlers/config"
 	models "URLShorter/internal/app/handlers/models"
 	log "URLShorter/internal/app/logger"
@@ -23,10 +24,12 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	r.Use(log.WithLoggingRequest)
 	r.Use(gzp.WithGzipCompression)
 	r.Use(gzp.WithGzipDecompression)
+	r.Use(cookies.WithCoockies)
 
 	r.Post("/api/shorten/batch", h.batchHandler)
 	r.Post("/api/shorten", h.apiShortenHandler)
 	r.Post("/", h.mainPostHandler)
+	r.Get("/api/user/urls", h.getButchByID)
 	r.Get("/ping", h.pingDB)
 	r.Get("/{i}", h.mainGetHandler)
 
@@ -51,6 +54,7 @@ func NewHandlers(shorter sht.Short, config cnfg.Config) *handlers {
 }
 
 func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
+	var userID string
 	body, err := io.ReadAll(req.Body)
 
 	if err != nil {
@@ -59,6 +63,11 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	defer req.Body.Close()
+
+	token, ok := req.Context().Value(cookies.TokenName).(string)
+	if ok {
+		userID, _ = cookies.GetUID(token)
+	}
 
 	receivedURL := strings.TrimSpace(string(body))
 	lines := strings.Split(receivedURL, "\n")
@@ -71,6 +80,7 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 	}
 	u := repo.URL{
 		FullURL: receivedURL,
+		UUID:    userID,
 	}
 
 	short, err := h.shorter.SetShortURL(req.Context(), &u)
@@ -94,13 +104,20 @@ func (h *handlers) mainPostHandler(res http.ResponseWriter, req *http.Request) {
 
 func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request) {
 	var request models.APIRequest
+	var userID string
 
 	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
 		return
 	}
 
+	token, ok := req.Context().Value(cookies.TokenName).(string)
+	if ok {
+		userID, _ = cookies.GetUID(token)
+	}
+
 	u := request.ToURL(request)
+	u.UUID = userID
 	url, e := h.shorter.SetShortURL(req.Context(), &u)
 
 	res.Header().Set("Content-Type", "application/json")
@@ -134,6 +151,7 @@ func (h *handlers) apiShortenHandler(res http.ResponseWriter, req *http.Request)
 
 func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 	var requests []models.APIRequest
+	var userID string
 
 	if err := json.NewDecoder(req.Body).Decode(&requests); err != nil {
 		http.Error(res, "Body is empty", http.StatusBadRequest)
@@ -142,9 +160,15 @@ func (h *handlers) batchHandler(res http.ResponseWriter, req *http.Request) {
 
 	us := make([]repo.URL, len(requests))
 
+	token, ok := req.Context().Value(cookies.TokenName).(string)
+	if ok {
+		userID, _ = cookies.GetUID(token)
+	}
+
 	for i, r := range requests {
 		us[i] = repo.URL{
 			FullURL: r.Original,
+			UUID:    userID,
 		}
 	}
 
@@ -191,11 +215,65 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) { // тесты
+func (h *handlers) pingDB(res http.ResponseWriter, req *http.Request) {
 	if err := h.shorter.Ping(req.Context()); err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	res.WriteHeader(http.StatusOK)
+}
+
+func (h *handlers) getButchByID(res http.ResponseWriter, req *http.Request) {
+	var butch models.ButchRequest
+	var response []models.ButchRequest
+	var userID string
+
+	_, err := req.Cookie(string(cookies.TokenName))
+
+	if err != nil {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	token, ok := req.Context().Value(cookies.TokenName).(string)
+
+	if !ok {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	uid, err := cookies.GetUID(token)
+	if err != nil {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	userID = uid
+	urls, err := h.shorter.GetByUID(req.Context(), userID)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if len(urls) == 0 {
+		res.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	response = butch.FromURLs(urls, h.config.ReturnAdress)
+	resp, err := json.Marshal(response)
+
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+
+	_, err = res.Write(resp)
+	if err != nil {
+		return
+	}
 }

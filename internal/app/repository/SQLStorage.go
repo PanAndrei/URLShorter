@@ -57,7 +57,8 @@ func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
 	_, err := d.DB.ExecContext(ctx, `
         CREATE TABLE IF NOT EXISTS urls (
            full_url TEXT UNIQUE,
-           short_url TEXT
+           short_url TEXT,
+		   user_id TEXT
         );
     `)
 	if err != nil {
@@ -78,8 +79,8 @@ func (d *SQLStorage) SaveURL(ctx context.Context, u *URL) (*URL, error) {
 	}
 
 	if _, err := d.DB.Exec(
-		"INSERT INTO urls (full_url, short_url) VALUES ($1,$2)",
-		u.FullURL, u.ShortURL); err != nil {
+		"INSERT INTO urls (full_url, short_url, user_id) VALUES ($1,$2,$3)",
+		u.FullURL, u.ShortURL, u.UUID); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == pgerrcode.UniqueViolation {
@@ -116,17 +117,40 @@ func (d *SQLStorage) BatchURLS(ctx context.Context, urls []*URL) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(
-		"INSERT INTO urls (full_url, short_url) VALUES ($1, $2)")
+		"INSERT INTO urls (full_url, short_url, user_id) VALUES ($1, $2, $3)")
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	for _, url := range urls {
-		_, err := stmt.Exec(url.FullURL, url.ShortURL)
+		_, err := stmt.Exec(url.FullURL, url.ShortURL, url.UUID)
 		if err != nil {
 			return err
 		}
 	}
 	return tx.Commit()
+}
+
+func (d *SQLStorage) GetByUID(ctx context.Context, id string) ([]*URL, error) {
+	var urls []*URL
+	query := "SELECT full_url, short_url, user_id FROM urls WHERE user_id = $1"
+	rows, err := d.DB.QueryContext(ctx, query, id)
+	if err != nil {
+		return nil, fmt.Errorf("queryContext: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var url URL
+		if err := rows.Scan(&url.FullURL, &url.ShortURL, &url.UUID); err != nil {
+			return nil, fmt.Errorf("rows.Scan: %w", err)
+		}
+		urls = append(urls, &url)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows.Err: %w", err)
+	}
+	return urls, nil
 }
