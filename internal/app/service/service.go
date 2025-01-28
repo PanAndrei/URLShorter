@@ -18,6 +18,7 @@ type Short interface {
 	Ping(ctx context.Context) error
 	BatchURLs(ctx context.Context, urls *[]repo.URL) (u *[]repo.URL, err error)
 	GetByUID(ctx context.Context, id string) (u []*repo.URL, err error)
+	DeleteURLs(ctx context.Context, u []*repo.URL) error
 }
 
 type Shorter struct {
@@ -90,4 +91,8 @@ func (serv *Shorter) BatchURLs(ctx context.Context, urls *[]repo.URL) (u *[]repo
 
 func (serv *Shorter) GetByUID(ctx context.Context, id string) (u []*repo.URL, err error) {
 	return serv.store.GetByUID(ctx, id)
+}
+
+func (serv *Shorter) DeleteURLs(ctx context.Context, u []*repo.URL) error {
+	return serv.DeleteURLs(ctx, u)
 }

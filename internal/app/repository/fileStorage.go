@@ -96,3 +96,7 @@ func (store *FileStore) GetByUID(ctx context.Context, id string) ([]*URL, error)
 
 	return urls, nil
 }
+
+func (store *FileStore) DeleteURLs(ctx context.Context, u []*URL) error {
+	return nil
+}

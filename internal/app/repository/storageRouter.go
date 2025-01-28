@@ -11,6 +11,7 @@ type Repository interface {
 	Ping(ctx context.Context) error
 	BatchURLS(ctx context.Context, urls []*URL) error
 	GetByUID(ctx context.Context, id string) ([]*URL, error)
+	DeleteURLs(ctx context.Context, u []*URL) error
 }
 
 type StorageRouter struct{}

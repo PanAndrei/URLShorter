@@ -32,6 +32,7 @@ func Serve(cnf cnfg.Config, sht sht.Short) error {
 	r.Get("/api/user/urls", h.getButchByID)
 	r.Get("/ping", h.pingDB)
 	r.Get("/{i}", h.mainGetHandler)
+	r.Delete("/api/user/urls", h.deleteButchByID)
 
 	srv := &http.Server{
 		Addr:    cnf.ServerAdress,
@@ -211,6 +212,11 @@ func (h *handlers) mainGetHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if url.IsDeleted {
+		res.WriteHeader(http.StatusGone)
+		return
+	}
+
 	res.Header().Set("Location", url.FullURL)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
@@ -276,4 +282,54 @@ func (h *handlers) getButchByID(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
+}
+
+func (h *handlers) deleteButchByID(res http.ResponseWriter, req *http.Request) {
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(res, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer req.Body.Close()
+
+	var shortURLs []string
+	if err := json.Unmarshal(body, &shortURLs); err != nil {
+		http.Error(res, "Failed to decode JSON", http.StatusBadRequest)
+		return
+	}
+
+	_, er := req.Cookie(string(cookies.TokenName))
+
+	if er != nil {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	token, ok := req.Context().Value(cookies.TokenName).(string)
+
+	if !ok {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	uid, err := cookies.GetUID(token)
+	if err != nil {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	var urls []*repo.URL
+	for _, shortURL := range shortURLs {
+		urls = append(urls, &repo.URL{
+			ShortURL: shortURL,
+			UUID:     uid,
+		})
+	}
+
+	if err := h.shorter.DeleteURLs(req.Context(), urls); err != nil {
+		http.Error(res, "Failed to delete URLs", http.StatusInternalServerError)
+		return
+	}
+
+	res.WriteHeader(http.StatusAccepted)
 }

@@ -42,6 +42,10 @@ func (m *MockShortener) GetByUID(ctx context.Context, id string) (u []*repo.URL,
 	return nil, nil
 }
 
+func (m *MockShortener) DeleteURLs(ctx context.Context, u []*repo.URL) error {
+	return nil
+}
+
 func TestMainPostHandler(t *testing.T) {
 	h := NewHandlers(&MockShortener{}, cnfg.Config{})
 

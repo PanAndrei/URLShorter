@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgerrcode"
@@ -58,7 +59,8 @@ func (d *SQLStorage) createTableIfNotExists(ctx context.Context) error {
         CREATE TABLE IF NOT EXISTS urls (
            full_url TEXT UNIQUE,
            short_url TEXT,
-		   user_id TEXT
+		   user_id TEXT,
+		   is_deleted BOOLEAN
         );
     `)
 	if err != nil {
@@ -79,8 +81,8 @@ func (d *SQLStorage) SaveURL(ctx context.Context, u *URL) (*URL, error) {
 	}
 
 	if _, err := d.DB.Exec(
-		"INSERT INTO urls (full_url, short_url, user_id) VALUES ($1,$2,$3)",
-		u.FullURL, u.ShortURL, u.UUID); err != nil {
+		"INSERT INTO urls (full_url, short_url, user_id, is_deleted) VALUES ($1,$2,$3,$4)",
+		u.FullURL, u.ShortURL, u.UUID, false); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == pgerrcode.UniqueViolation {
@@ -94,8 +96,8 @@ func (d *SQLStorage) SaveURL(ctx context.Context, u *URL) (*URL, error) {
 
 func (d *SQLStorage) LoadURL(ctx context.Context, u *URL) (*URL, error) {
 	var loadedURL URL
-	query := "SELECT full_url, short_url FROM urls WHERE short_url = $1 OR full_url = $2"
-	err := d.DB.QueryRowContext(ctx, query, u.ShortURL, u.FullURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL)
+	query := "SELECT full_url, short_url, is_deleted FROM urls WHERE short_url = $1 OR full_url = $2"
+	err := d.DB.QueryRowContext(ctx, query, u.ShortURL, u.FullURL).Scan(&loadedURL.FullURL, &loadedURL.ShortURL, &loadedURL.IsDeleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, newErrURLNotFound()
@@ -117,14 +119,14 @@ func (d *SQLStorage) BatchURLS(ctx context.Context, urls []*URL) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(
-		"INSERT INTO urls (full_url, short_url, user_id) VALUES ($1, $2, $3)")
+		"INSERT INTO urls (full_url, short_url, user_id, is_deleted) VALUES ($1,$2,$3,$4)")
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	for _, url := range urls {
-		_, err := stmt.Exec(url.FullURL, url.ShortURL, url.UUID)
+		_, err := stmt.Exec(url.FullURL, url.ShortURL, url.UUID, false)
 		if err != nil {
 			return err
 		}
@@ -134,7 +136,7 @@ func (d *SQLStorage) BatchURLS(ctx context.Context, urls []*URL) error {
 
 func (d *SQLStorage) GetByUID(ctx context.Context, id string) ([]*URL, error) {
 	var urls []*URL
-	query := "SELECT full_url, short_url, user_id FROM urls WHERE user_id = $1"
+	query := "SELECT full_url, short_url, user_id, is_deleted FROM urls WHERE user_id = $1"
 	rows, err := d.DB.QueryContext(ctx, query, id)
 	if err != nil {
 		return nil, fmt.Errorf("queryContext: %w", err)
@@ -143,7 +145,7 @@ func (d *SQLStorage) GetByUID(ctx context.Context, id string) ([]*URL, error) {
 
 	for rows.Next() {
 		var url URL
-		if err := rows.Scan(&url.FullURL, &url.ShortURL, &url.UUID); err != nil {
+		if err := rows.Scan(&url.FullURL, &url.ShortURL, &url.UUID, &url.IsDeleted); err != nil {
 			return nil, fmt.Errorf("rows.Scan: %w", err)
 		}
 		urls = append(urls, &url)
@@ -153,4 +155,55 @@ func (d *SQLStorage) GetByUID(ctx context.Context, id string) ([]*URL, error) {
 		return nil, fmt.Errorf("rows.Err: %w", err)
 	}
 	return urls, nil
+}
+
+func (d *SQLStorage) DeleteURLs(ctx context.Context, urls []*URL) error {
+	tx, err := d.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare("UPDATE urls SET is_deleted = TRUE WHERE short_url = $1 AND user_id = $2")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	urlChan := make(chan *URL, len(urls))
+
+	for _, url := range urls {
+		urlChan <- url
+	}
+	close(urlChan)
+
+	numWorkers := 4
+
+	errChan := make(chan error, numWorkers)
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for url := range urlChan {
+				_, err := stmt.ExecContext(ctx, url.ShortURL, url.UUID)
+				if err != nil {
+					errChan <- err
+					return
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
