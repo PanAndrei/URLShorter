@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/jackc/pgerrcode"
@@ -170,40 +169,11 @@ func (d *SQLStorage) DeleteURLs(ctx context.Context, urls []*URL) error {
 	}
 	defer stmt.Close()
 
-	urlChan := make(chan *URL, len(urls))
-
-	for _, url := range urls {
-		urlChan <- url
-	}
-	close(urlChan)
-
-	numWorkers := 4
-
-	errChan := make(chan error, numWorkers)
-
-	var wg sync.WaitGroup
-
-	for i := 0; i < numWorkers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for url := range urlChan {
-				_, err := stmt.ExecContext(ctx, url.ShortURL, url.UUID)
-				if err != nil {
-					errChan <- err
-					return
-				}
-			}
-		}()
-	}
-	wg.Wait()
-	close(errChan)
-
-	for err := range errChan {
+	for _, u := range urls {
+		_, err := stmt.ExecContext(ctx, u.ShortURL, u.UUID)
 		if err != nil {
 			return err
 		}
 	}
-
 	return tx.Commit()
 }
