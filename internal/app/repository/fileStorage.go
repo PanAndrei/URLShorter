@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strconv"
 )
 
 type FileStore struct {
@@ -35,7 +36,7 @@ func (store *FileStore) SaveURL(ctx context.Context, u *URL) (*URL, error) {
 	defer file.Close()
 
 	fileInfo, _ := file.Stat()
-	u.UUID = int(fileInfo.Size())
+	u.UUID = strconv.FormatInt(fileInfo.Size(), 10)
 	encoder := json.NewEncoder(file)
 	encoder.Encode(u)
 
@@ -87,5 +88,15 @@ func (store *FileStore) BatchURLS(ctx context.Context, urls []*URL) error {
 		store.SaveURL(ctx, u)
 	}
 
+	return nil
+}
+
+func (store *FileStore) GetByUID(ctx context.Context, id string) ([]*URL, error) {
+	var urls []*URL
+
+	return urls, nil
+}
+
+func (store *FileStore) DeleteURLs(ctx context.Context, u []*URL) error {
 	return nil
 }
