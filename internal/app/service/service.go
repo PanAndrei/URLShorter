@@ -94,5 +94,5 @@ func (serv *Shorter) GetByUID(ctx context.Context, id string) (u []*repo.URL, er
 }
 
 func (serv *Shorter) DeleteURLs(ctx context.Context, u []*repo.URL) error {
-	return serv.DeleteURLs(ctx, u)
+	return serv.store.DeleteURLs(ctx, u)
 }
